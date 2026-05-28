@@ -14,7 +14,7 @@ dist-ssr
 supabase/.temp/
 
 # Local AI/coding assistant configuration
-.agents/
+
 AGENTS.md
 CODEX.md
 skills-lock.json
