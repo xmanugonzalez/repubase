@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { LogOut, UserRound } from 'lucide-react'
+import { useEffect, useState, type ReactNode } from 'react'
+import { LogOut, Menu, UserRound, X } from 'lucide-react'
 import type { MiembroTaller, Perfil, Taller, Vista } from '../../tipos/dominio'
 import type { VistaNavegacion } from '../../tipos/navegacion'
 import { LogoRepubase } from '../ui/LogoRepubase'
@@ -33,8 +33,126 @@ export function AppLayout({
   onSeleccionarTaller: (id: string) => void
   onSeleccionarVista: (vista: Vista) => void
 }) {
+  const [menuMovilAbierto, setMenuMovilAbierto] = useState(false)
+
+  useEffect(() => {
+    if (!menuMovilAbierto) return
+
+    const cerrarConEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuMovilAbierto(false)
+    }
+
+    window.addEventListener('keydown', cerrarConEscape)
+    return () => window.removeEventListener('keydown', cerrarConEscape)
+  }, [menuMovilAbierto])
+
+  const seleccionarVistaMovil = (vista: Vista) => {
+    onSeleccionarVista(vista)
+    setMenuMovilAbierto(false)
+  }
+
+  const seleccionarTallerMovil = (id: string) => {
+    onSeleccionarTaller(id)
+    setMenuMovilAbierto(false)
+  }
+
+  const avatarUsuario = perfil?.avatar_url ? (
+    <img className="sidebar-avatar" src={perfil.avatar_url} alt="" />
+  ) : (
+    <span className="sidebar-avatar sidebar-avatar-empty">
+      <UserRound size={15} />
+    </span>
+  )
+
   return (
     <div className="app-shell">
+      <header className="mobile-topbar lg:hidden">
+        <button
+          type="button"
+          className="mobile-icon-button"
+          aria-label="Abrir menu de navegacion"
+          aria-controls="mobile-drawer"
+          aria-expanded={menuMovilAbierto}
+          onClick={() => setMenuMovilAbierto(true)}
+        >
+          <Menu size={22} />
+        </button>
+
+        <LogoRepubase />
+
+        <button
+          type="button"
+          className="mobile-avatar-button"
+          aria-label="Ir al perfil"
+          onClick={() => onSeleccionarVista('perfil')}
+        >
+          {avatarUsuario}
+        </button>
+      </header>
+
+      <div className={`mobile-drawer-layer lg:hidden ${menuMovilAbierto ? 'mobile-drawer-layer-open' : ''}`}>
+        <button
+          type="button"
+          className="mobile-drawer-overlay"
+          aria-label="Cerrar menu"
+          onClick={() => setMenuMovilAbierto(false)}
+        />
+
+        <aside
+          id="mobile-drawer"
+          className="mobile-drawer"
+          aria-hidden={!menuMovilAbierto}
+        >
+          <div className="mobile-drawer-header">
+            <LogoRepubase />
+            <button
+              type="button"
+              className="mobile-icon-button"
+              aria-label="Cerrar menu de navegacion"
+              onClick={() => setMenuMovilAbierto(false)}
+            >
+              <X size={21} />
+            </button>
+          </div>
+
+          <SelectorTaller talleres={talleres} tallerActivoId={tallerActivoId} onChange={seleccionarTallerMovil} />
+
+          <nav className="sidebar-nav mobile-drawer-nav" aria-label="Navegacion principal">
+            {vistasDisponibles.map((item) => (
+              <BotonVista
+                key={item.id}
+                item={item}
+                activa={vistaActual === item.id}
+                contador={item.id === 'alertas' ? alertasCantidad : 0}
+                onClick={() => seleccionarVistaMovil(item.id)}
+              />
+            ))}
+          </nav>
+
+          <div className="mobile-drawer-user">
+            <button type="button" className="sidebar-user-row sidebar-user-button" onClick={() => seleccionarVistaMovil('perfil')}>
+              {avatarUsuario}
+              <span className="min-w-0">
+                <span className="block truncate">{perfil?.nombre ?? usuarioEmail ?? 'Usuario'}</span>
+                <span className="block truncate text-sm font-bold text-[var(--tinta-suave)]">{usuarioEmail}</span>
+              </span>
+            </button>
+            <p className="label-caps mt-3">{rolActivo ?? 'sin rol activo'}</p>
+            <button
+              type="button"
+              className="sidebar-logout"
+              onClick={() => {
+                setMenuMovilAbierto(false)
+                void onCerrarSesion()
+              }}
+            >
+              <LogOut size={17} />
+              Salir
+            </button>
+          </div>
+        </aside>
+      </div>
+
       <aside className="app-sidebar fixed inset-y-0 left-0 hidden w-[325px] flex-col lg:flex">
         <div className="sidebar-brand">
           <LogoRepubase />
@@ -58,13 +176,7 @@ export function AppLayout({
         <div className="sidebar-user">
           <p className="label-caps mb-5">{rolActivo ?? 'sin rol activo'}</p>
           <button type="button" className="sidebar-user-row sidebar-user-button" onClick={() => onSeleccionarVista('perfil')}>
-            {perfil?.avatar_url ? (
-              <img className="sidebar-avatar" src={perfil.avatar_url} alt="" />
-            ) : (
-              <span className="sidebar-avatar sidebar-avatar-empty">
-                <UserRound size={15} />
-              </span>
-            )}
+            {avatarUsuario}
             <p className="truncate">{perfil?.nombre ?? usuarioEmail}</p>
           </button>
           <button
@@ -87,21 +199,22 @@ export function AppLayout({
               </p>
               <h2 className="display-title">{tituloVista(vistaActual)}</h2>
             </div>
-            <div className="flex flex-wrap gap-2 lg:hidden">
-              {vistasDisponibles.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  className={`rounded-full px-4 py-2 text-sm font-extrabold ${
-                    vistaActual === item.id
-                      ? 'bg-[var(--verde-taller)] text-white'
-                      : 'bg-white text-[var(--verde-profundo)] shadow-sm'
-                  }`}
-                  onClick={() => onSeleccionarVista(item.id)}
-                >
-                  {item.etiqueta}
-                </button>
-              ))}
+            <div className="mobile-view-tabs lg:hidden">
+              {vistasDisponibles.map((item) => {
+                const Icono = item.icono
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`mobile-segment-button ${vistaActual === item.id ? 'mobile-segment-button-active' : ''}`}
+                    onClick={() => onSeleccionarVista(item.id)}
+                  >
+                    <Icono size={15} />
+                    <span>{item.etiqueta}</span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </header>

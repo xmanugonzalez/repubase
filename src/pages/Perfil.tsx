@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AlertTriangle, Camera, Mail, ShieldCheck, Trash2, UserRound, Wrench, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { MiembroTaller, Perfil as PerfilUsuario, Taller } from '../tipos/dominio'
@@ -33,29 +33,51 @@ export function Perfil({
   tallerActivoId: string
 }) {
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false)
-  const [confirmacionEliminar, setConfirmacionEliminar] = useState('')
   const inicial = (perfil?.nombre || usuarioEmail || 'U').trim().charAt(0).toUpperCase()
   const talleresPorId = new Map(talleres.map((taller) => [taller.id, taller]))
   const membresiaActiva = miembros.find((miembro) => miembro.taller_id === tallerActivoId && miembro.estado === 'activo')
-  const fraseConfirmacion = 'ELIMINAR MI CUENTA'
-  const cuentaConfirmada = confirmacionEliminar.trim() === fraseConfirmacion
+  const tallerActivoNombre = talleresPorId.get(tallerActivoId)?.nombre ?? 'Sin taller seleccionado'
 
   const cerrarModalEliminar = () => {
     if (eliminandoCuenta) return
 
     setModalEliminarAbierto(false)
-    setConfirmacionEliminar('')
   }
 
   const confirmarEliminacionCuenta = async () => {
-    if (!cuentaConfirmada) return
-
     await eliminarCuenta()
   }
+
+  useEffect(() => {
+    if (!modalEliminarAbierto) return
+
+    const cerrarConEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !eliminandoCuenta) setModalEliminarAbierto(false)
+    }
+
+    window.addEventListener('keydown', cerrarConEscape)
+    return () => window.removeEventListener('keydown', cerrarConEscape)
+  }, [modalEliminarAbierto, eliminandoCuenta])
 
   return (
     <>
       <div className="profile-grid">
+        <section className="mobile-profile-summary" aria-label="Resumen del perfil">
+          <div className="mobile-profile-avatar">
+            {perfil?.avatar_url ? (
+              <img src={perfil.avatar_url} alt={`Foto de ${perfil.nombre ?? usuarioEmail}`} />
+            ) : (
+              <span aria-hidden="true">{inicial}</span>
+            )}
+          </div>
+          <div className="min-w-0">
+            <p className="label-caps">Cuenta personal</p>
+            <h3>{perfil?.nombre || 'Perfil'}</h3>
+            <p>{usuarioEmail}</p>
+            <span>{membresiaActiva?.rol ? `${membresiaActiva.rol} en ${tallerActivoNombre}` : tallerActivoNombre}</span>
+          </div>
+        </section>
+
         <Panel titulo="Mi perfil">
           <div className="profile-hero">
             <div className="profile-avatar-wrap">
@@ -105,7 +127,7 @@ export function Perfil({
               <DatoPerfil
                 icono={Wrench}
                 etiqueta="Taller activo"
-                valor={talleresPorId.get(tallerActivoId)?.nombre ?? 'Sin taller seleccionado'}
+                valor={tallerActivoNombre}
               />
               <DatoPerfil
                 icono={UserRound}
@@ -139,7 +161,11 @@ export function Perfil({
               })}
 
               {miembros.length === 0 ? (
-                <div className="empty-state grid min-h-[14rem] place-items-center p-10 text-center">
+                <div className="empty-state profile-empty-state">
+                  <div className="empty-state-icon">
+                    <Wrench size={22} />
+                  </div>
+                  <p className="empty-state-title">Sin talleres todavia</p>
                   <p className="section-copy">Todavía no participas en ningún taller.</p>
                 </div>
               ) : null}
@@ -189,10 +215,6 @@ export function Perfil({
               Esta acción es irreversible. Se eliminará tu cuenta personal, tu perfil y tu foto. Los talleres donde seas
               el único miembro activo también se eliminarán con sus datos asociados.
             </p>
-            <p>
-              Para confirmar, escribe <strong>"{fraseConfirmacion}"</strong> en el campo de abajo.
-            </p>
-
             <form
               className="delete-confirm-form"
               onSubmit={(event) => {
@@ -200,16 +222,8 @@ export function Perfil({
                 void confirmarEliminacionCuenta()
               }}
             >
-              <label htmlFor="confirmar-eliminar-cuenta">Confirmación requerida</label>
-              <input
-                id="confirmar-eliminar-cuenta"
-                value={confirmacionEliminar}
-                onChange={(event) => setConfirmacionEliminar(event.target.value)}
-                placeholder={fraseConfirmacion}
-                autoFocus
-              />
-              <button className="danger-button" type="submit" disabled={!cuentaConfirmada || eliminandoCuenta}>
-                {eliminandoCuenta ? 'Eliminando cuenta...' : 'Eliminar mi cuenta definitivamente'}
+              <button className="danger-button" type="submit" disabled={eliminandoCuenta} autoFocus>
+                {eliminandoCuenta ? 'Eliminando cuenta...' : 'Lo se, eliminar cuenta'}
               </button>
             </form>
           </section>
