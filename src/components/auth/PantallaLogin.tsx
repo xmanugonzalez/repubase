@@ -92,10 +92,10 @@ export function PantallaLogin({
           </div>
 
           <div className="auth-showcase-copy">
-            <p className="auth-kicker">Gestión de inventario para talleres</p>
+            <p className="auth-kicker">Software de inventario para talleres mecánicos</p>
             <h1>
               Controle repuestos,
-              <span> libere espacio</span>
+              <span> evite faltantes</span>
               <strong> y compre con datos.</strong>
             </h1>
           </div>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://xmanugonzalez.github.io/repubase/sitemap.xml
