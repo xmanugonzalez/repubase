@@ -35,6 +35,17 @@ export type MiembroTaller = {
   creado_en: string
 }
 
+export type InvitacionTaller = {
+  id: string
+  taller_id: string
+  token_hash: string
+  rol: RolTaller
+  creado_por: string
+  creado_en: string
+  regenerado_en: string
+  revocado_en: string | null
+}
+
 export type Repuesto = {
   id: string
   taller_id: string

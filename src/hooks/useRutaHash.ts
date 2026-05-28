@@ -28,6 +28,22 @@ function leerRutaActual() {
   return hash.startsWith('/') ? hash : '/'
 }
 
+function obtenerTokenInvitacion(ruta: string) {
+  const prefijo = '/invitacion/'
+
+  if (!ruta.startsWith(prefijo)) return null
+
+  const token = ruta.slice(prefijo.length).trim()
+
+  if (!token) return null
+
+  try {
+    return decodeURIComponent(token)
+  } catch {
+    return token
+  }
+}
+
 export function useRutaHash() {
   const [ruta, setRuta] = useState(() => leerRutaActual())
 
@@ -39,7 +55,8 @@ export function useRutaHash() {
     return () => window.removeEventListener('hashchange', manejarCambio)
   }, [])
 
-  const vistaDesdeRuta = rutas[ruta] ?? 'dashboard'
+  const invitacionToken = obtenerTokenInvitacion(ruta)
+  const vistaDesdeRuta = invitacionToken ? 'talleres' : rutas[ruta] ?? 'dashboard'
   const navegar = (vista: Vista) => {
     const proximaRuta = rutasPorVista[vista]
 
@@ -52,6 +69,7 @@ export function useRutaHash() {
   }
 
   return {
+    invitacionToken,
     ruta,
     vistaDesdeRuta,
     navegar,

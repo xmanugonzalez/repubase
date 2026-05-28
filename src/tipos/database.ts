@@ -87,6 +87,34 @@ export type Database = {
           estado?: EstadoMiembro
         }
       >
+      invitaciones_taller: Tabla<
+        {
+          id: string
+          taller_id: string
+          token_hash: string
+          rol: RolTaller
+          creado_por: string
+          creado_en: string
+          regenerado_en: string
+          revocado_en: string | null
+        },
+        {
+          id?: string
+          taller_id: string
+          token_hash: string
+          rol?: RolTaller
+          creado_por: string
+          creado_en?: string
+          regenerado_en?: string
+          revocado_en?: string | null
+        },
+        {
+          token_hash?: string
+          rol?: RolTaller
+          regenerado_en?: string
+          revocado_en?: string | null
+        }
+      >
       repuestos: Tabla<
         {
           id: string
@@ -204,6 +232,27 @@ export type Database = {
       eliminar_cuenta_propia: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      generar_invitacion_taller: {
+        Args: { p_taller_id: string; p_rol: RolTaller }
+        Returns: string
+      }
+      validar_invitacion_taller: {
+        Args: { p_token: string }
+        Returns: {
+          valida: boolean
+          taller_id: string | null
+          taller_nombre: string | null
+          rol: RolTaller | null
+        }[]
+      }
+      aceptar_invitacion_taller: {
+        Args: { p_token: string }
+        Returns: {
+          taller_id: string
+          taller_nombre: string
+          rol: RolTaller
+        }[]
       }
     }
     Enums: Record<string, never>

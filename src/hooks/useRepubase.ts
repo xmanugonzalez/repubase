@@ -3,7 +3,7 @@ import type { Session } from '@supabase/supabase-js'
 import { AlertTriangle, Boxes, Building2, LayoutDashboard, RefreshCw, UserRound, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { obtenerAlertasStockParado } from '../modulos/alertas/alertas'
-import type { MiembroTaller, MovimientoStock, Perfil, Repuesto, Taller, TipoMovimiento, Vista } from '../tipos/dominio'
+import type { MiembroTaller, MovimientoStock, Perfil, Repuesto, RolTaller, Taller, TipoMovimiento, Vista } from '../tipos/dominio'
 import type { MiembroFormulario, MovimientoFormulario, RepuestoFormulario, TallerFormulario } from '../tipos/formularios'
 import { movimientoInicial, repuestoInicial } from '../tipos/formularios'
 import type { VistaNavegacion } from '../tipos/navegacion'
@@ -22,12 +22,35 @@ const DURACION_MENSAJE_MS = 4000
 const AVATAR_BUCKET = 'avatares'
 const AVATAR_TAMANIO_MAXIMO = 2 * 1024 * 1024
 const AVATAR_TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const INVITACION_PENDIENTE_KEY = 'repubase:invitacion-pendiente'
 
 const obtenerTextoMetadata = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor.trim() : null)
 
+const obtenerRedirectOAuth = () => {
+  const url = new URL(import.meta.env.BASE_URL || '/', window.location.origin)
+  url.search = ''
+  url.hash = ''
+
+  return url.toString()
+}
+
+const crearUrlInvitacion = (token: string) => {
+  const url = new URL(import.meta.env.BASE_URL || '/', window.location.origin)
+  url.search = ''
+  url.hash = `/invitacion/${encodeURIComponent(token)}`
+
+  return url.toString()
+}
+
 const obtenerMensajeErrorUsuario = (detalle: unknown) => {
-  const mensajeOriginal =
-    detalle instanceof Error ? detalle.message : typeof detalle === 'string' ? detalle : 'No se pudo completar'
+  let mensajeOriginal = 'No se pudo completar'
+  if (detalle instanceof Error) {
+    mensajeOriginal = detalle.message
+  } else if (typeof detalle === 'string') {
+    mensajeOriginal = detalle
+  } else if (detalle && typeof detalle === 'object' && 'message' in detalle) {
+    mensajeOriginal = String((detalle as Record<string, unknown>).message)
+  }
   const mensaje = mensajeOriginal.toLowerCase()
 
   if (mensaje.includes('invalid login credentials')) {
@@ -40,6 +63,10 @@ const obtenerMensajeErrorUsuario = (detalle: unknown) => {
 
   if (mensaje.includes('user already registered') || mensaje.includes('already registered')) {
     return 'Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo para registrarte.'
+  }
+
+  if (mensaje.includes('invitacion invalida') || mensaje.includes('invitaciÃ³n invÃ¡lida')) {
+    return 'El link de invitaciÃ³n ya no es vÃ¡lido. Pide al administrador que genere uno nuevo.'
   }
 
   if (mensaje.includes('password') && (mensaje.includes('weak') || mensaje.includes('at least'))) {
@@ -90,7 +117,7 @@ const obtenerMensajeErrorUsuario = (detalle: unknown) => {
   return 'No pudimos completar la acción. Revisa los datos ingresados e intenta nuevamente.'
 }
 
-export function useRepubase(vistaInicial: Vista = 'dashboard') {
+export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: string | null = null) {
   const [session, setSession] = useState<Session | null>(null)
   const [cargandoSesion, setCargandoSesion] = useState(true)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
@@ -115,6 +142,10 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
   const [perfilNombre, setPerfilNombre] = useState('')
   const [subiendoAvatar, setSubiendoAvatar] = useState(false)
   const [eliminandoCuenta, setEliminandoCuenta] = useState(false)
+  const [rolInvitacionLink, setRolInvitacionLink] = useState<RolTaller>('mecanico')
+  const [linkInvitacion, setLinkInvitacion] = useState('')
+  const [generandoInvitacion, setGenerandoInvitacion] = useState(false)
+  const [aceptandoInvitacion, setAceptandoInvitacion] = useState(false)
 
   const usuario = session?.user ?? null
   const usuarioId = usuario?.id ?? ''
@@ -320,7 +351,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
   }
 
   const iniciarConGoogle = async () => {
-    const redirectTo = `${window.location.origin}${window.location.pathname}`
+    const redirectTo = obtenerRedirectOAuth()
     const { error: authError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
@@ -664,6 +695,71 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
     }
   }
 
+  const generarInvitacionLink = async () => {
+    if (!tallerActivoId || !esAdministrador) return
+
+    setGenerandoInvitacion(true)
+
+    try {
+      const { data: token, error: invitacionError } = await supabase.rpc('generar_invitacion_taller', {
+        p_taller_id: tallerActivoId,
+        p_rol: rolInvitacionLink,
+      })
+
+      if (invitacionError) throw invitacionError
+      if (!token) throw new Error('No se pudo generar el token de invitacion')
+
+      setLinkInvitacion(crearUrlInvitacion(token))
+      mostrarMensaje('Link de invitacion generado. Copialo antes de salir de esta pantalla.')
+    } catch (detalle) {
+      mostrarError(detalle)
+    } finally {
+      setGenerandoInvitacion(false)
+    }
+  }
+
+  const copiarInvitacionLink = async () => {
+    if (!linkInvitacion) return
+
+    try {
+      await navigator.clipboard.writeText(linkInvitacion)
+      mostrarMensaje('Link de invitacion copiado.')
+    } catch (detalle) {
+      mostrarError(detalle)
+    }
+  }
+
+  const aceptarInvitacionLink = async (token: string) => {
+    if (!usuario || aceptandoInvitacion) return
+
+    setAceptandoInvitacion(true)
+
+    try {
+      const { data: invitacionAceptada, error: invitacionError } = await supabase.rpc('aceptar_invitacion_taller', {
+        p_token: token,
+      })
+
+      if (invitacionError) throw invitacionError
+
+      const tallerInvitado = invitacionAceptada?.[0]
+
+      if (!tallerInvitado) throw new Error('Invitacion invalida o regenerada')
+
+      window.localStorage.removeItem(INVITACION_PENDIENTE_KEY)
+      await cargarBase()
+      setTallerActivoId(tallerInvitado.taller_id)
+      setVista('dashboard')
+      window.location.hash = '/dashboard'
+      mostrarMensaje(`Te uniste al taller "${tallerInvitado.taller_nombre}".`)
+    } catch (detalle) {
+      window.localStorage.removeItem(INVITACION_PENDIENTE_KEY)
+      window.location.hash = '/talleres'
+      mostrarError(detalle)
+    } finally {
+      setAceptandoInvitacion(false)
+    }
+  }
+
   const reclamarInvitacion = async () => {
     if (!usuario?.email) return
 
@@ -717,11 +813,28 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
   }, [usuario?.id])
 
   useEffect(() => {
+    if (invitacionToken) {
+      window.localStorage.setItem(INVITACION_PENDIENTE_KEY, invitacionToken)
+    }
+
+    const tokenPendiente = invitacionToken || window.localStorage.getItem(INVITACION_PENDIENTE_KEY)
+
+    if (!usuario || !tokenPendiente || aceptandoInvitacion) return
+
+    void aceptarInvitacionLink(tokenPendiente)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [aceptandoInvitacion, invitacionToken, usuario?.id])
+
+  useEffect(() => {
     if (!tallerActivoId) return
 
     void cargarDatosTaller(tallerActivoId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tallerActivoId])
+
+  useEffect(() => {
+    setLinkInvitacion('')
+  }, [rolInvitacionLink, tallerActivoId])
 
   useEffect(() => {
     if (!usuarioId) return
@@ -758,9 +871,12 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
     cargandoSesion,
     error,
     esAdministrador,
+    aceptandoInvitacion,
     eliminandoCuenta,
     formMovimiento,
     formRepuesto,
+    generandoInvitacion,
+    linkInvitacion,
     membresiaActual,
     mensaje,
     miembros,
@@ -772,6 +888,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
     repuestoEditando,
     repuestos,
     repuestosFiltrados,
+    rolInvitacionLink,
     session,
     stockTotal,
     subiendoAvatar,
@@ -784,6 +901,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
     vistaActual,
     vistasDisponibles,
     agregarMiembro,
+    aceptarInvitacionLink,
     cancelarEdicionRepuesto,
     cerrarSesion,
     crearTaller,
@@ -796,6 +914,8 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
     guardarPerfil,
     iniciarConGoogle,
     iniciarSesion,
+    copiarInvitacionLink,
+    generarInvitacionLink,
     reclamarInvitacion,
     registrarMovimiento,
     registrarUsuario,
@@ -805,6 +925,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard') {
     setNuevoMiembro,
     setNuevoTaller,
     setPerfilNombre,
+    setRolInvitacionLink,
     setTallerActivoId,
     setVista,
     subirFotoPerfil,

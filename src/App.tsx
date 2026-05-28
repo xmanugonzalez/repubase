@@ -16,8 +16,8 @@ import { Usuarios } from './pages/Usuarios'
 import type { Vista } from './tipos/dominio'
 
 function App() {
-  const { vistaDesdeRuta, navegar } = useRutaHash()
-  const repubase = useRepubase(vistaDesdeRuta)
+  const { invitacionToken, vistaDesdeRuta, navegar } = useRutaHash()
+  const repubase = useRepubase(vistaDesdeRuta, invitacionToken)
   const { setVista } = repubase
 
   useEffect(() => {
@@ -71,6 +71,9 @@ function App() {
       {repubase.error ? <Alerta tipo="error" texto={repubase.error} /> : null}
       {repubase.cargandoDatos && !repubase.mensaje && !repubase.error ? (
         <Alerta tipo="info" texto="Actualizando datos..." />
+      ) : null}
+      {repubase.aceptandoInvitacion && !repubase.mensaje && !repubase.error ? (
+        <Alerta tipo="info" texto="Activando invitacion..." />
       ) : null}
 
       <RutaActual repubase={repubase} />
@@ -154,7 +157,12 @@ function RutaActual({ repubase }: { repubase: ReturnType<typeof useRepubase> }) 
         nuevoMiembro={repubase.nuevoMiembro}
         setNuevoMiembro={repubase.setNuevoMiembro}
         agregarMiembro={repubase.agregarMiembro}
-        reclamarInvitacion={repubase.reclamarInvitacion}
+        copiarInvitacionLink={repubase.copiarInvitacionLink}
+        generarInvitacionLink={repubase.generarInvitacionLink}
+        generandoInvitacion={repubase.generandoInvitacion}
+        linkInvitacion={repubase.linkInvitacion}
+        rolInvitacionLink={repubase.rolInvitacionLink}
+        setRolInvitacionLink={repubase.setRolInvitacionLink}
       />
     )
   }

@@ -765,6 +765,12 @@ code {
   background: var(--verde-profundo);
 }
 
+.primary-button:disabled,
+.secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
 .secondary-button {
   border: 1px solid rgb(31 143 77 / 22%);
   background: #ffffff;
@@ -896,6 +902,45 @@ code {
 .module-grid {
   display: grid;
   gap: 1.875rem;
+}
+
+.invite-link-card {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.invite-link-icon {
+  display: inline-flex;
+  width: 3.35rem;
+  height: 3.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 30% 20%, rgb(158 232 184 / 64%), transparent 62%),
+    color-mix(in srgb, var(--verde-palido) 68%, #ffffff 32%);
+  color: var(--verde-profundo);
+  box-shadow: 0 14px 28px rgb(7 90 48 / 8%);
+}
+
+.invite-link-result {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.invite-link-result .control {
+  overflow: hidden;
+  color: var(--verde-profundo);
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+}
+
+.invite-link-note {
+  color: var(--tinta-suave);
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 .section-copy {
