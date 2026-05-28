@@ -83,7 +83,7 @@ export function AppLayout({
         <button
           type="button"
           className="mobile-avatar-button"
-          aria-label="Ir al perfil"
+          aria-label="Ir a mi perfil"
           onClick={() => onSeleccionarVista('perfil')}
         >
           {avatarUsuario}
@@ -118,7 +118,7 @@ export function AppLayout({
           <SelectorTaller talleres={talleres} tallerActivoId={tallerActivoId} onChange={seleccionarTallerMovil} />
 
           <nav className="sidebar-nav mobile-drawer-nav" aria-label="Navegacion principal">
-            {vistasDisponibles.map((item) => (
+            {vistasDisponibles.filter(item => item.id !== 'perfil').map((item) => (
               <BotonVista
                 key={item.id}
                 item={item}
@@ -130,7 +130,7 @@ export function AppLayout({
           </nav>
 
           <div className="mobile-drawer-user">
-            <button type="button" className="sidebar-user-row sidebar-user-button" onClick={() => seleccionarVistaMovil('perfil')}>
+            <button type="button" className="sidebar-user-row sidebar-user-button text-left w-full" onClick={() => seleccionarVistaMovil('perfil')}>
               {avatarUsuario}
               <span className="min-w-0">
                 <span className="block truncate">{perfil?.nombre ?? usuarioEmail ?? 'Usuario'}</span>
@@ -162,7 +162,7 @@ export function AppLayout({
         <SelectorTaller talleres={talleres} tallerActivoId={tallerActivoId} onChange={onSeleccionarTaller} />
 
         <nav className="sidebar-nav">
-          {vistasDisponibles.map((item) => (
+          {vistasDisponibles.filter(item => item.id !== 'perfil').map((item) => (
             <BotonVista
               key={item.id}
               item={item}
@@ -199,23 +199,7 @@ export function AppLayout({
               </p>
               <h2 className="display-title">{tituloVista(vistaActual)}</h2>
             </div>
-            <div className="mobile-view-tabs lg:hidden">
-              {vistasDisponibles.map((item) => {
-                const Icono = item.icono
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className={`mobile-segment-button ${vistaActual === item.id ? 'mobile-segment-button-active' : ''}`}
-                    onClick={() => onSeleccionarVista(item.id)}
-                  >
-                    <Icono size={15} />
-                    <span>{item.etiqueta}</span>
-                  </button>
-                )
-              })}
-            </div>
+            {/* mobile-view-tabs eliminados para evitar duplicidad */}
           </div>
         </header>
 

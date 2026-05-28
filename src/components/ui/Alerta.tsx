@@ -21,7 +21,7 @@ export function Alerta({ tipo, texto }: { tipo: TipoAlerta; texto: string }) {
 
   return (
     <div
-      className={`fixed right-5 top-5 z-50 flex max-w-[min(28rem,calc(100vw-2.5rem))] items-center gap-4 rounded-xl px-5 py-5 text-base font-bold shadow-[0_18px_48px_rgb(7_90_48_/_16%)] ${clases[tipo]}`}
+      className={`fixed right-5 top-5 z-[9999] flex max-w-[min(28rem,calc(100vw-2.5rem))] items-center gap-4 rounded-xl px-5 py-5 text-base font-bold shadow-[0_18px_48px_rgb(7_90_48_/_16%)] ${clases[tipo]}`}
       role={esError ? 'alert' : 'status'}
       aria-live={esError ? 'assertive' : 'polite'}
     >

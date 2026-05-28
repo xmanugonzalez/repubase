@@ -42,7 +42,7 @@ export function Inventario({
               <Input value={formRepuesto.modelo} onChange={(modelo) => setFormRepuesto({ ...formRepuesto, modelo })} label="Modelo" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <Input value={formRepuesto.anio} onChange={(anio) => setFormRepuesto({ ...formRepuesto, anio })} label="Anio" type="number" />
+              <Input value={formRepuesto.anio} onChange={(anio) => setFormRepuesto({ ...formRepuesto, anio })} label="Año" type="number" />
               <Input value={formRepuesto.categoria} onChange={(categoria) => setFormRepuesto({ ...formRepuesto, categoria })} label="Categoria" />
             </div>
             <div className="grid grid-cols-2 gap-3">
