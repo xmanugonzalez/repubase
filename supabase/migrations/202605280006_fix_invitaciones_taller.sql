@@ -10,7 +10,9 @@ as $$
   select encode(digest(p_token, 'sha256'), 'hex');
 $$;
 
-create or replace function public.generar_invitacion_taller(p_taller_id uuid, p_rol public.rol_taller)
+drop function if exists public.generar_invitacion_taller(uuid, public.rol_taller);
+
+create or replace function public.generar_invitacion_taller(p_taller_id uuid, p_rol text)
 returns text
 language plpgsql
 security definer
@@ -31,11 +33,14 @@ begin
     and revocado_en is null;
 
   insert into public.invitaciones_taller (taller_id, token_hash, rol, creado_por)
-  values (p_taller_id, public.hash_invitacion_taller(v_token), p_rol, auth.uid());
+  values (p_taller_id, public.hash_invitacion_taller(v_token), p_rol::public.rol_taller, auth.uid());
 
   return v_token;
 end;
 $$;
+
+revoke all on function public.generar_invitacion_taller(uuid, text) from public;
+grant execute on function public.generar_invitacion_taller(uuid, text) to authenticated;
 
 create or replace function public.validar_invitacion_taller(p_token text)
 returns table (
@@ -105,10 +110,10 @@ begin
 
   select id
   into v_miembro_id
-  from public.miembros_taller
-  where taller_id = v_invitacion.taller_id
-    and (usuario_id = auth.uid() or email = v_email)
-  order by creado_en asc
+  from public.miembros_taller mt
+  where mt.taller_id = v_invitacion.taller_id
+    and (mt.usuario_id = auth.uid() or mt.email = v_email)
+  order by mt.creado_en asc
   limit 1;
 
   if v_miembro_id is null then

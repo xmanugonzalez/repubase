@@ -251,7 +251,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         ignoreDuplicates: true,
       })
 
-      const [{ data: perfilData, error: perfilError }, { data: miembrosData, error: miembrosError }] =
+      const [{ data: perfilData, error: perfilError }, { data: propiaMembresiaData, error: propiaMembresiaError }] =
         await Promise.all([
           supabase.from('perfiles').select('*').eq('id', usuario.id).single(),
           supabase
@@ -262,14 +262,14 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         ])
 
       if (perfilError) throw perfilError
-      if (miembrosError) throw miembrosError
+      if (propiaMembresiaError) throw propiaMembresiaError
 
       setPerfil(perfilData)
-      setMiembros(miembrosData ?? [])
 
-      const tallerIds = [...new Set((miembrosData ?? []).map((miembro) => miembro.taller_id))]
+      const tallerIds = [...new Set((propiaMembresiaData ?? []).map((miembro) => miembro.taller_id))]
 
       if (tallerIds.length === 0) {
+        setMiembros([])
         setTalleres([])
         setTallerActivoId('')
         return
@@ -283,8 +283,19 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
 
       if (talleresError) throw talleresError
 
+      // Cargamos todos los miembros de los talleres a los que pertenece el usuario
+      // (no solo los propios) para que el administrador pueda ver la lista completa
+      const { data: todosMiembrosData, error: todosMiembrosError } = await supabase
+        .from('miembros_taller')
+        .select('*')
+        .in('taller_id', tallerIds)
+        .order('creado_en', { ascending: true })
+
+      if (todosMiembrosError) throw todosMiembrosError
+
       const talleresDisponibles = talleresData ?? []
 
+      setMiembros(todosMiembrosData ?? [])
       setTalleres(talleresDisponibles)
       setTallerActivoId((actual) =>
         talleresDisponibles.some((taller) => taller.id === actual) ? actual : talleresDisponibles[0]?.id || '',
