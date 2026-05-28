@@ -37,9 +37,27 @@ const obtenerRedirectOAuth = () => {
 const crearUrlInvitacion = (token: string) => {
   const url = new URL(import.meta.env.BASE_URL || '/', window.location.origin)
   url.search = ''
-  url.hash = `/invitacion/${encodeURIComponent(token)}`
+  url.hash = `/invite/${encodeURIComponent(token)}`
 
   return url.toString()
+}
+
+const rutasPorVista: Record<Vista, string> = {
+  dashboard: '/dashboard',
+  inventario: '/inventario',
+  movimientos: '/movimientos',
+  alertas: '/alertas',
+  usuarios: '/usuarios',
+  talleres: '/talleres',
+  perfil: '/perfil',
+}
+
+const actualizarHashVista = (vista: Vista) => {
+  const proximaRuta = rutasPorVista[vista]
+
+  if (window.location.hash !== `#${proximaRuta}`) {
+    window.location.hash = proximaRuta
+  }
 }
 
 const obtenerMensajeErrorUsuario = (detalle: unknown) => {
@@ -120,6 +138,7 @@ const obtenerMensajeErrorUsuario = (detalle: unknown) => {
 export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: string | null = null) {
   const [session, setSession] = useState<Session | null>(null)
   const [cargandoSesion, setCargandoSesion] = useState(true)
+  const [baseCargada, setBaseCargada] = useState(false)
   const [perfil, setPerfil] = useState<Perfil | null>(null)
   const [talleres, setTalleres] = useState<Taller[]>([])
   const [miembros, setMiembros] = useState<MiembroTaller[]>([])
@@ -194,6 +213,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   const stockTotal = repuestos.reduce((total, repuesto) => total + repuesto.stock, 0)
 
   const limpiarDatos = () => {
+    setBaseCargada(false)
     setPerfil(null)
     setTalleres([])
     setMiembros([])
@@ -226,6 +246,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   const cargarBase = async () => {
     if (!usuario) return
 
+    setBaseCargada(false)
     setCargandoDatos(true)
     setError('')
 
@@ -303,6 +324,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     } catch (detalle) {
       mostrarError(detalle)
     } finally {
+      setBaseCargada(true)
       setCargandoDatos(false)
     }
   }
@@ -441,6 +463,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       await cargarBase()
       setTallerActivoId(taller.id)
       setVista('dashboard')
+      actualizarHashVista('dashboard')
     } catch (detalle) {
       mostrarError(detalle)
     }
@@ -849,16 +872,19 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
 
   useEffect(() => {
     if (!usuarioId) return
+    if (!baseCargada) return
 
     if (!tieneTallerActivo && vista !== 'talleres' && vista !== 'perfil') {
       setVista('talleres')
+      actualizarHashVista('talleres')
       return
     }
 
     if (tieneTallerActivo && vista === 'usuarios' && !esAdministrador) {
       setVista('dashboard')
+      actualizarHashVista('dashboard')
     }
-  }, [esAdministrador, tieneTallerActivo, usuarioId, vista])
+  }, [baseCargada, esAdministrador, tieneTallerActivo, usuarioId, vista])
 
   useEffect(() => {
     setPerfilNombre(perfil?.nombre ?? '')
@@ -879,6 +905,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     alertas,
     busqueda,
     cargandoDatos,
+    baseCargada,
     cargandoSesion,
     error,
     esAdministrador,

@@ -22,6 +22,8 @@ const rutasPorVista: Record<Vista, string> = {
   perfil: '/perfil',
 }
 
+const prefijosInvitacion = ['/invite/', '/invitacion/']
+
 function leerRutaActual() {
   const hash = window.location.hash.replace(/^#/, '')
 
@@ -29,9 +31,9 @@ function leerRutaActual() {
 }
 
 function obtenerTokenInvitacion(ruta: string) {
-  const prefijo = '/invitacion/'
+  const prefijo = prefijosInvitacion.find((item) => ruta.startsWith(item))
 
-  if (!ruta.startsWith(prefijo)) return null
+  if (!prefijo) return null
 
   const token = ruta.slice(prefijo.length).trim()
 
