@@ -8,9 +8,9 @@ export function Panel({ titulo, icon, children }: { titulo: string; icon?: React
           {icon}
           <h3 className="headline-title">{titulo}</h3>
         </div>
-      ) : (
+      ) : titulo ? (
         <h3 className="headline-title mb-8">{titulo}</h3>
-      )}
+      ) : null}
       {children}
     </section>
   )

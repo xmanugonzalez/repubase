@@ -1,10 +1,14 @@
+import { HiOutlineClipboardDocumentList } from 'react-icons/hi2'
 import { formatearFecha } from '../../lib/fechas'
 import type { MovimientoStock } from '../../tipos/dominio'
 
 export function TablaMovimientos({ movimientos }: { movimientos: MovimientoStock[] }) {
   if (movimientos.length === 0) {
     return (
-      <div className="empty-state grid min-h-[14rem] place-items-center p-10 text-center">
+      <div className="empty-state module-empty-state grid min-h-[14rem] place-items-center p-10 text-center">
+        <span className="module-empty-icon" aria-hidden="true">
+          <HiOutlineClipboardDocumentList size={24} />
+        </span>
         <p className="section-copy">Sin movimientos registrados.</p>
       </div>
     )
@@ -28,7 +32,8 @@ export function TablaMovimientos({ movimientos }: { movimientos: MovimientoStock
             <tr key={movimiento.id}>
               <td>{formatearFecha(movimiento.creado_en)}</td>
               <td>
-                {movimiento.repuesto?.codigo ?? 'Repuesto'} - {movimiento.repuesto?.nombre ?? movimiento.repuesto_id}
+                {movimiento.repuesto?.codigo ? `${movimiento.repuesto.codigo} - ` : ''}
+                {movimiento.repuesto?.nombre ?? movimiento.repuesto_id}
               </td>
               <td>{movimiento.tipo}</td>
               <td>{movimiento.cantidad}</td>

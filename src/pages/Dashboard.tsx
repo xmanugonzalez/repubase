@@ -1,3 +1,11 @@
+import {
+  HiOutlineArchiveBox,
+  HiOutlineBellAlert,
+  HiOutlineChartBarSquare,
+  HiOutlineClipboardDocumentList,
+  HiOutlineCube,
+  HiOutlineCurrencyDollar,
+} from 'react-icons/hi2'
 import { formatearGs } from '../lib/fechas'
 import type { MovimientoStock } from '../tipos/dominio'
 import { TablaMovimientos } from '../components/tablas/TablaMovimientos'
@@ -16,38 +24,81 @@ export function Dashboard({
   alertasActivas: number
   movimientos: MovimientoStock[]
 }) {
+  const tieneMovimientos = movimientos.length > 0
+  const promedioStock = cantidadRepuestos > 0 ? Math.round(stockTotal / cantidadRepuestos) : 0
+  const estadoAlertas = alertasActivas === 0 ? 'Al dia' : 'Revisar'
+
   return (
     <div className="surface-grid">
-      <div className="grid gap-8 md:grid-cols-3">
-        <article className="metric-card md:col-span-1">
-          <h3 className="headline-title mb-10">Inventario</h3>
-          <div className="flex items-end justify-between gap-6">
-            <div>
-              <p className="font-bold text-[var(--verde-profundo)]">Total</p>
-              <strong className="metric-value block">{cantidadRepuestos}</strong>
-            </div>
-            <div className="pb-4 text-right font-bold text-[var(--verde-profundo)]">
-              <p>Stock total: {stockTotal}</p>
-              <p>Valor: {formatearGs(valorInventario)}</p>
-            </div>
+      <div className="dashboard-metric-grid">
+        <article className="metric-card dashboard-primary-metric">
+          <div className="metric-card-top">
+            <span className="metric-icon">
+              <HiOutlineArchiveBox size={26} />
+            </span>
+            <span className="metric-chip">Inventario</span>
+          </div>
+          <div>
+            <p className="metric-label">Repuestos cargados</p>
+            <strong className="metric-value block">{cantidadRepuestos}</strong>
+          </div>
+          <div className="dashboard-primary-facts">
+            <span>
+              <HiOutlineCube size={18} />
+              Stock total: {stockTotal}
+            </span>
+            <span>
+              <HiOutlineCurrencyDollar size={18} />
+              Valor: {formatearGs(valorInventario)}
+            </span>
           </div>
         </article>
-        <article className="metric-card flex flex-col justify-center">
-          <h3 className="headline-title mb-8">Movimientos recientes</h3>
-          <p className="section-copy">
-            {movimientos.length === 0
-              ? 'Aun no hay movimientos registrados.'
-              : `${movimientos.length} movimientos cargados recientemente.`}
-          </p>
+
+        <article className="metric-card dashboard-small-metric">
+          <div className="metric-card-top">
+            <span className="metric-icon">
+              <HiOutlineClipboardDocumentList size={24} />
+            </span>
+          </div>
+          <p className="metric-label">Movimientos</p>
+          <strong>{movimientos.length}</strong>
+          <span>{tieneMovimientos ? 'Actividad reciente registrada' : 'Sin actividad todavia'}</span>
         </article>
-        <article className="metric-card flex flex-col justify-center">
-          <h3 className="headline-title mb-8">Alertas</h3>
-          <p className="section-copy">
-            {alertasActivas === 0 ? 'No tienes alertas activas.' : `${alertasActivas} repuestos requieren revision.`}
-          </p>
+
+        <article className="metric-card dashboard-small-metric">
+          <div className="metric-card-top">
+            <span className="metric-icon">
+              <HiOutlineBellAlert size={24} />
+            </span>
+            <span className={alertasActivas === 0 ? 'metric-chip metric-chip-ok' : 'metric-chip metric-chip-alert'}>
+              {estadoAlertas}
+            </span>
+          </div>
+          <p className="metric-label">Alertas</p>
+          <strong>{alertasActivas}</strong>
+          <span>{alertasActivas === 0 ? 'No hay urgencias activas' : 'Repuestos requieren revision'}</span>
+        </article>
+
+        <article className="metric-card dashboard-small-metric">
+          <div className="metric-card-top">
+            <span className="metric-icon">
+              <HiOutlineChartBarSquare size={24} />
+            </span>
+          </div>
+          <p className="metric-label">Promedio</p>
+          <strong>{promedioStock}</strong>
+          <span>Unidades por repuesto</span>
         </article>
       </div>
-      <Panel titulo="Actividad reciente">
+
+      <Panel
+        titulo="Actividad reciente"
+        icon={
+          <div className="module-section-icon" aria-hidden="true">
+            <HiOutlineClipboardDocumentList size={23} />
+          </div>
+        }
+      >
         <TablaMovimientos movimientos={movimientos} />
       </Panel>
     </div>
