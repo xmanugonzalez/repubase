@@ -12,6 +12,9 @@ export type RepuestoFormulario = {
   stockInicial: string
   ubicacion: string
   descripcion: string
+  fotoUrl: string
+  fotoArchivo: File | null
+  atributos: Record<string, string>
 }
 
 export type MovimientoFormulario = {
@@ -25,6 +28,14 @@ export type TallerFormulario = {
   nombre: string
   direccion: string
   telefono: string
+  whatsapp: string
+  email: string
+  ciudad: string
+  horario: string
+  servicios: string
+  notas: string
+  logoUrl: string
+  logoArchivo: File | null
 }
 
 export type MiembroFormulario = {
@@ -44,6 +55,9 @@ export const repuestoInicial: RepuestoFormulario = {
   stockInicial: '0',
   ubicacion: '',
   descripcion: '',
+  fotoUrl: '',
+  fotoArchivo: null,
+  atributos: {},
 }
 
 export const movimientoInicial: MovimientoFormulario = {
@@ -51,4 +65,18 @@ export const movimientoInicial: MovimientoFormulario = {
   tipo: 'entrada',
   cantidad: '1',
   motivo: '',
+}
+
+export const tallerInicial: TallerFormulario = {
+  nombre: '',
+  direccion: '',
+  telefono: '',
+  whatsapp: '',
+  email: '',
+  ciudad: '',
+  horario: '',
+  servicios: '',
+  notas: '',
+  logoUrl: '',
+  logoArchivo: null,
 }

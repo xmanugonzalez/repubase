@@ -1,4 +1,4 @@
-export type RolTaller = 'administrador' | 'mecanico'
+export type RolTaller = 'propietario' | 'administrador' | 'encargado' | 'mecanico' | 'inventario' | 'visualizador'
 
 export type EstadoMiembro = 'activo' | 'inactivo' | 'invitado'
 
@@ -16,11 +16,20 @@ export type Perfil = {
   creado_en: string
 }
 
+export type PerfilMiembro = Pick<Perfil, 'id' | 'nombre' | 'email' | 'avatar_url'>
+
 export type Taller = {
   id: string
   nombre: string
   direccion: string | null
   telefono: string | null
+  whatsapp: string | null
+  email: string | null
+  ciudad: string | null
+  horario: string | null
+  servicios: string | null
+  notas: string | null
+  logo_url: string | null
   creado_por: string | null
   creado_en: string
 }
@@ -33,6 +42,7 @@ export type MiembroTaller = {
   rol: RolTaller
   estado: EstadoMiembro
   creado_en: string
+  perfil?: PerfilMiembro | null
 }
 
 export type InvitacionTaller = {
@@ -49,17 +59,19 @@ export type InvitacionTaller = {
 export type Repuesto = {
   id: string
   taller_id: string
-  codigo: string
+  codigo: string | null
   nombre: string
-  marca: string
-  modelo: string
-  anio: number
+  marca: string | null
+  modelo: string | null
+  anio: number | null
   categoria: string
   estado: EstadoRepuesto
   precio: number
   stock: number
   ubicacion: string | null
   descripcion: string | null
+  foto_url: string | null
+  atributos: Record<string, string>
   ultimo_movimiento: string | null
   creado_por: string | null
   actualizado_por: string | null

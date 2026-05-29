@@ -2,8 +2,11 @@ import { useEffect, useState } from 'react'
 import { AlertTriangle, Camera, Mail, ShieldCheck, Trash2, UserRound, Wrench, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { MiembroTaller, Perfil as PerfilUsuario, Taller } from '../tipos/dominio'
+import { obtenerRolLegible } from '../modulos/talleres/permisos'
 import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
+
+const defaultUserAvatarSrc = `${import.meta.env.BASE_URL}default-user-avatar.svg`
 
 export function Perfil({
   perfil,
@@ -33,7 +36,6 @@ export function Perfil({
   tallerActivoId: string
 }) {
   const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false)
-  const inicial = (perfil?.nombre || usuarioEmail || 'U').trim().charAt(0).toUpperCase()
   const talleresPorId = new Map(talleres.map((taller) => [taller.id, taller]))
   const membresiaActiva = miembros.find((miembro) => miembro.taller_id === tallerActivoId && miembro.estado === 'activo')
   const tallerActivoNombre = talleresPorId.get(tallerActivoId)?.nombre ?? 'Sin taller seleccionado'
@@ -67,14 +69,14 @@ export function Perfil({
             {perfil?.avatar_url ? (
               <img src={perfil.avatar_url} alt={`Foto de ${perfil.nombre ?? usuarioEmail}`} />
             ) : (
-              <span aria-hidden="true">{inicial}</span>
+              <img src={defaultUserAvatarSrc} alt="" aria-hidden="true" />
             )}
           </div>
           <div className="min-w-0">
             <p className="label-caps">Cuenta personal</p>
             <h3>{perfil?.nombre || 'Perfil'}</h3>
             <p>{usuarioEmail}</p>
-            <span>{membresiaActiva?.rol ? `${membresiaActiva.rol} en ${tallerActivoNombre}` : tallerActivoNombre}</span>
+            <span>{membresiaActiva?.rol ? `${obtenerRolLegible(membresiaActiva.rol)} en ${tallerActivoNombre}` : tallerActivoNombre}</span>
           </div>
         </section>
 
@@ -84,9 +86,7 @@ export function Perfil({
               {perfil?.avatar_url ? (
                 <img className="profile-avatar" src={perfil.avatar_url} alt={`Foto de ${perfil.nombre ?? usuarioEmail}`} />
               ) : (
-                <div className="profile-avatar profile-avatar-empty" aria-hidden="true">
-                  {inicial}
-                </div>
+                <img className="profile-avatar profile-avatar-empty" src={defaultUserAvatarSrc} alt="" aria-hidden="true" />
               )}
               <label className="profile-photo-button">
                 <Camera size={18} />
@@ -123,7 +123,7 @@ export function Perfil({
           <Panel titulo="Información de cuenta">
             <div className="profile-facts">
               <DatoPerfil icono={Mail} etiqueta="Correo" valor={usuarioEmail ?? 'Sin correo registrado'} />
-              <DatoPerfil icono={ShieldCheck} etiqueta="Rol activo" valor={membresiaActiva?.rol ?? 'Sin rol activo'} />
+              <DatoPerfil icono={ShieldCheck} etiqueta="Rol activo" valor={membresiaActiva?.rol ? obtenerRolLegible(membresiaActiva.rol) : 'Sin rol activo'} />
               <DatoPerfil
                 icono={Wrench}
                 etiqueta="Taller activo"
@@ -151,7 +151,7 @@ export function Perfil({
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <span className="status-pill">{miembro.rol}</span>
+                      <span className="status-pill">{obtenerRolLegible(miembro.rol)}</span>
                       <span className="rounded-full bg-white px-3 py-1 text-sm font-extrabold text-[var(--tinta-suave)]">
                         {miembro.estado}
                       </span>

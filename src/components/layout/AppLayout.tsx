@@ -1,8 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { LogOut, Menu, UserRound, X } from 'lucide-react'
+import { LogOut, Menu, X } from 'lucide-react'
 import type { MiembroTaller, Perfil, Taller, Vista } from '../../tipos/dominio'
 import type { VistaNavegacion } from '../../tipos/navegacion'
+import { obtenerRolLegible } from '../../modulos/talleres/permisos'
 import { LogoRepubase } from '../ui/LogoRepubase'
+
+const defaultUserAvatarSrc = `${import.meta.env.BASE_URL}default-user-avatar.svg`
 
 export function AppLayout({
   children,
@@ -59,10 +62,9 @@ export function AppLayout({
   const avatarUsuario = perfil?.avatar_url ? (
     <img className="sidebar-avatar" src={perfil.avatar_url} alt="" />
   ) : (
-    <span className="sidebar-avatar sidebar-avatar-empty">
-      <UserRound size={15} />
-    </span>
+    <img className="sidebar-avatar sidebar-avatar-empty" src={defaultUserAvatarSrc} alt="" />
   )
+  const rolActivoTexto = rolActivo ? obtenerRolLegible(rolActivo) : 'sin rol activo'
 
   return (
     <div className="app-shell">
@@ -137,7 +139,7 @@ export function AppLayout({
                 <span className="block truncate text-sm font-bold text-[var(--tinta-suave)]">{usuarioEmail}</span>
               </span>
             </button>
-            <p className="label-caps mt-3">{rolActivo ?? 'sin rol activo'}</p>
+            <p className="label-caps mt-3">{rolActivoTexto}</p>
             <button
               type="button"
               className="sidebar-logout"
@@ -174,7 +176,7 @@ export function AppLayout({
         </nav>
 
         <div className="sidebar-user">
-          <p className="label-caps mb-5">{rolActivo ?? 'sin rol activo'}</p>
+          <p className="label-caps mb-5">{rolActivoTexto}</p>
           <button type="button" className="sidebar-user-row sidebar-user-button" onClick={() => onSeleccionarVista('perfil')}>
             {avatarUsuario}
             <p className="truncate">{perfil?.nombre ?? usuarioEmail}</p>

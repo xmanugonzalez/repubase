@@ -93,9 +93,11 @@ function RutaActual({ repubase }: { repubase: ReturnType<typeof useRepubase> }) 
         nuevoTaller={repubase.nuevoTaller}
         setNuevoTaller={repubase.setNuevoTaller}
         crearTaller={repubase.crearTaller}
+        actualizarTaller={repubase.actualizarTaller}
         eliminarTaller={repubase.eliminarTaller}
         seleccionarTaller={repubase.setTallerActivoId}
-        esAdministradorDeTaller={repubase.esAdministradorDeTaller}
+        puedeEditarTaller={(tallerId) => repubase.tienePermisoEnTaller(tallerId, 'gestionar_taller')}
+        puedeEliminarTaller={(tallerId) => repubase.tienePermisoEnTaller(tallerId, 'transferir_propiedad')}
       />
     )
   }
@@ -128,7 +130,7 @@ function RutaActual({ repubase }: { repubase: ReturnType<typeof useRepubase> }) 
         guardarRepuesto={repubase.guardarRepuesto}
         editarRepuesto={repubase.editarRepuesto}
         eliminarRepuesto={repubase.eliminarRepuesto}
-        esAdministrador={repubase.esAdministrador}
+        esAdministrador={repubase.puedeGestionarInventario}
         cancelarEdicion={repubase.cancelarEdicionRepuesto}
       />
     )
@@ -142,6 +144,7 @@ function RutaActual({ repubase }: { repubase: ReturnType<typeof useRepubase> }) 
         formMovimiento={repubase.formMovimiento}
         setFormMovimiento={repubase.setFormMovimiento}
         registrarMovimiento={repubase.registrarMovimiento}
+        puedeRegistrarMovimientos={repubase.puedeRegistrarMovimientos}
       />
     )
   }
@@ -150,13 +153,17 @@ function RutaActual({ repubase }: { repubase: ReturnType<typeof useRepubase> }) 
     return <Alertas alertas={repubase.alertas} />
   }
 
-  if (repubase.vistaActual === 'usuarios' && repubase.esAdministrador) {
+  if (repubase.vistaActual === 'usuarios' && repubase.puedeGestionarUsuarios) {
     return (
       <Usuarios
         miembros={repubase.miembros.filter((miembro) => miembro.taller_id === repubase.tallerActivoId)}
+        membresiaActual={repubase.membresiaActual}
         nuevoMiembro={repubase.nuevoMiembro}
         setNuevoMiembro={repubase.setNuevoMiembro}
         agregarMiembro={repubase.agregarMiembro}
+        cambiarRolMiembro={repubase.cambiarRolMiembro}
+        eliminarMiembroTaller={repubase.eliminarMiembroTaller}
+        transferirPropiedadTaller={repubase.transferirPropiedadTaller}
         copiarInvitacionLink={repubase.copiarInvitacionLink}
         generarInvitacionLink={repubase.generarInvitacionLink}
         generandoInvitacion={repubase.generandoInvitacion}

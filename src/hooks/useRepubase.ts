@@ -3,9 +3,11 @@ import type { Session } from '@supabase/supabase-js'
 import { AlertTriangle, Boxes, Building2, LayoutDashboard, RefreshCw, UserRound, Users } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { obtenerAlertasStockParado } from '../modulos/alertas/alertas'
+import { tienePermiso } from '../modulos/talleres/permisos'
+import type { PermisoTaller } from '../modulos/talleres/permisos'
 import type { MiembroTaller, MovimientoStock, Perfil, Repuesto, RolTaller, Taller, TipoMovimiento, Vista } from '../tipos/dominio'
 import type { MiembroFormulario, MovimientoFormulario, RepuestoFormulario, TallerFormulario } from '../tipos/formularios'
-import { movimientoInicial, repuestoInicial } from '../tipos/formularios'
+import { movimientoInicial, repuestoInicial, tallerInicial } from '../tipos/formularios'
 import type { VistaNavegacion } from '../tipos/navegacion'
 
 const vistas: VistaNavegacion[] = [
@@ -13,7 +15,7 @@ const vistas: VistaNavegacion[] = [
   { id: 'inventario', etiqueta: 'Inventario', icono: Boxes },
   { id: 'movimientos', etiqueta: 'Movimientos', icono: RefreshCw },
   { id: 'alertas', etiqueta: 'Alertas', icono: AlertTriangle },
-  { id: 'usuarios', etiqueta: 'Usuarios', icono: Users, requiereAdmin: true },
+  { id: 'usuarios', etiqueta: 'Usuarios', icono: Users, permiso: 'ver_usuarios' },
   { id: 'talleres', etiqueta: 'Talleres', icono: Building2 },
   { id: 'perfil', etiqueta: 'Perfil', icono: UserRound },
 ]
@@ -22,6 +24,12 @@ const DURACION_MENSAJE_MS = 4000
 const AVATAR_BUCKET = 'avatares'
 const AVATAR_TAMANIO_MAXIMO = 2 * 1024 * 1024
 const AVATAR_TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+const REPUESTOS_BUCKET = 'repuestos'
+const REPUESTO_FOTO_TAMANIO_MAXIMO = 3 * 1024 * 1024
+const REPUESTO_FOTO_TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp']
+const TALLERES_BUCKET = 'talleres'
+const TALLER_LOGO_TAMANIO_MAXIMO = 3 * 1024 * 1024
+const TALLER_LOGO_TIPOS_PERMITIDOS = ['image/jpeg', 'image/png', 'image/webp']
 const INVITACION_PENDIENTE_KEY = 'repubase:invitacion-pendiente'
 
 const obtenerTextoMetadata = (valor: unknown) => (typeof valor === 'string' && valor.trim() ? valor.trim() : null)
@@ -41,6 +49,13 @@ const crearUrlInvitacion = (token: string) => {
 
   return url.toString()
 }
+
+const obtenerAtributosLimpios = (atributos: Record<string, string>) =>
+  Object.fromEntries(
+    Object.entries(atributos)
+      .map(([clave, valor]) => [clave, valor.trim()])
+      .filter(([, valor]) => valor),
+  )
 
 const rutasPorVista: Record<Vista, string> = {
   dashboard: '/dashboard',
@@ -92,7 +107,7 @@ const obtenerMensajeErrorUsuario = (detalle: unknown) => {
   }
 
   if (mensaje.includes('mime') || mensaje.includes('file size') || mensaje.includes('payload')) {
-    return 'La imagen no cumple con el formato o tamaño permitido. Usa una foto JPG, PNG, WEBP o GIF de hasta 2 MB.'
+    return 'La imagen no cumple con el formato o tamaño permitido. Usa una foto JPG, PNG o WEBP dentro del limite indicado.'
   }
 
   if (mensaje.includes('duplicate key') || mensaje.includes('unique')) {
@@ -153,7 +168,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   const [formRepuesto, setFormRepuesto] = useState<RepuestoFormulario>(repuestoInicial)
   const [repuestoEditando, setRepuestoEditando] = useState<Repuesto | null>(null)
   const [formMovimiento, setFormMovimiento] = useState<MovimientoFormulario>(movimientoInicial)
-  const [nuevoTaller, setNuevoTaller] = useState<TallerFormulario>({ nombre: '', direccion: '', telefono: '' })
+  const [nuevoTaller, setNuevoTaller] = useState<TallerFormulario>(tallerInicial)
   const [nuevoMiembro, setNuevoMiembro] = useState<MiembroFormulario>({
     email: '',
     rol: 'mecanico',
@@ -176,15 +191,21 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       miembro.estado === 'activo' &&
       (miembro.usuario_id === usuarioId || miembro.email === usuario?.email),
   )
-  const esAdministrador = membresiaActual?.rol === 'administrador'
-  const esAdministradorDeTaller = (tallerId: string) =>
-    miembros.some(
+  const puedeGestionarUsuarios = tienePermiso(membresiaActual, 'gestionar_miembros')
+  const puedeGestionarInventario = tienePermiso(membresiaActual, 'gestionar_inventario')
+  const puedeRegistrarMovimientos = tienePermiso(membresiaActual, 'registrar_movimientos')
+  const esPropietario = tienePermiso(membresiaActual, 'transferir_propiedad')
+  const esAdministrador = puedeGestionarUsuarios
+  const obtenerMembresiaDeTaller = (tallerId: string) =>
+    miembros.find(
       (miembro) =>
         miembro.taller_id === tallerId &&
         miembro.estado === 'activo' &&
-        miembro.rol === 'administrador' &&
         (miembro.usuario_id === usuarioId || miembro.email === usuario?.email),
     )
+  const tienePermisoEnTaller = (tallerId: string, permiso: PermisoTaller) =>
+    tienePermiso(obtenerMembresiaDeTaller(tallerId), permiso)
+  const esAdministradorDeTaller = (tallerId: string) => tienePermisoEnTaller(tallerId, 'gestionar_miembros')
   const alertas = useMemo(() => obtenerAlertasStockParado(repuestos), [repuestos])
   const vistaActual: Vista = vista === 'perfil' ? 'perfil' : tieneTallerActivo ? vista : 'talleres'
   const vistasDisponibles = useMemo(
@@ -193,9 +214,9 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         if (item.id === 'talleres') return true
         if (item.id === 'perfil') return true
         if (!tieneTallerActivo) return false
-        return !item.requiereAdmin || esAdministrador
+        return !item.permiso || tienePermiso(membresiaActual, item.permiso)
       }),
-    [esAdministrador, tieneTallerActivo],
+    [membresiaActual, tieneTallerActivo],
   )
   const repuestosFiltrados = useMemo(() => {
     const texto = busqueda.trim().toLowerCase()
@@ -203,7 +224,15 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     if (!texto) return repuestos
 
     return repuestos.filter((repuesto) =>
-      [repuesto.codigo, repuesto.nombre, repuesto.marca, repuesto.modelo, repuesto.categoria, repuesto.estado]
+      [
+        repuesto.codigo,
+        repuesto.nombre,
+        repuesto.marca,
+        repuesto.modelo,
+        repuesto.categoria,
+        repuesto.estado,
+        ...Object.values(repuesto.atributos ?? {}),
+      ]
         .join(' ')
         .toLowerCase()
         .includes(texto),
@@ -243,6 +272,34 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     setPerfil((actual) => (actual ? { ...actual, ...cambios } : actual))
   }
 
+  const agregarPerfilesAMiembros = async (miembrosBase: MiembroTaller[]) => {
+    const usuariosIds = [
+      ...new Set(
+        miembrosBase
+          .map((miembro) => miembro.usuario_id)
+          .filter((usuarioId): usuarioId is string => Boolean(usuarioId)),
+      ),
+    ]
+
+    if (usuariosIds.length === 0) {
+      return miembrosBase.map((miembro) => ({ ...miembro, perfil: null }))
+    }
+
+    const { data: perfilesMiembros, error: perfilesMiembrosError } = await supabase
+      .from('perfiles')
+      .select('id,nombre,email,avatar_url')
+      .in('id', usuariosIds)
+
+    if (perfilesMiembrosError) throw perfilesMiembrosError
+
+    const perfilesPorId = new Map((perfilesMiembros ?? []).map((perfilMiembro) => [perfilMiembro.id, perfilMiembro]))
+
+    return miembrosBase.map((miembro) => ({
+      ...miembro,
+      perfil: miembro.usuario_id ? perfilesPorId.get(miembro.usuario_id) ?? null : null,
+    }))
+  }
+
   const cargarBase = async () => {
     if (!usuario) return
 
@@ -271,6 +328,10 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         onConflict: 'id',
         ignoreDuplicates: true,
       })
+
+      const { error: invitacionesPendientesError } = await supabase.rpc('reclamar_invitaciones_pendientes')
+
+      if (invitacionesPendientesError) throw invitacionesPendientesError
 
       const [{ data: perfilData, error: perfilError }, { data: propiaMembresiaData, error: propiaMembresiaError }] =
         await Promise.all([
@@ -315,8 +376,9 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       if (todosMiembrosError) throw todosMiembrosError
 
       const talleresDisponibles = talleresData ?? []
+      const miembrosConPerfil = await agregarPerfilesAMiembros((todosMiembrosData ?? []) as MiembroTaller[])
 
-      setMiembros(todosMiembrosData ?? [])
+      setMiembros(miembrosConPerfil)
       setTalleres(talleresDisponibles)
       setTallerActivoId((actual) =>
         talleresDisponibles.some((taller) => taller.id === actual) ? actual : talleresDisponibles[0]?.id || '',
@@ -431,16 +493,54 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     }
   }
 
+  const subirLogoTaller = async (tallerId: string, archivo: File) => {
+    if (!TALLER_LOGO_TIPOS_PERMITIDOS.includes(archivo.type)) {
+      throw new Error('La foto del taller debe ser JPG, PNG o WEBP.')
+    }
+
+    if (archivo.size > TALLER_LOGO_TAMANIO_MAXIMO) {
+      throw new Error('La foto del taller no puede superar los 3 MB.')
+    }
+
+    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const ruta = `${tallerId}/logo.${extension}`
+
+    const { error: uploadError } = await supabase.storage.from(TALLERES_BUCKET).upload(ruta, archivo, {
+      cacheControl: '3600',
+      upsert: true,
+    })
+
+    if (uploadError) throw uploadError
+
+    const { data } = supabase.storage.from(TALLERES_BUCKET).getPublicUrl(ruta)
+    return `${data.publicUrl}?v=${Date.now()}`
+  }
+
+  const obtenerDatosTallerFormulario = (formulario: TallerFormulario, logoUrl: string | null) => ({
+    nombre: formulario.nombre.trim(),
+    direccion: formulario.direccion.trim() || null,
+    telefono: formulario.telefono.trim() || null,
+    whatsapp: formulario.whatsapp.trim() || null,
+    email: formulario.email.trim().toLowerCase() || null,
+    ciudad: formulario.ciudad.trim() || null,
+    horario: formulario.horario.trim() || null,
+    servicios: formulario.servicios.trim() || null,
+    notas: formulario.notas.trim() || null,
+    logo_url: logoUrl,
+  })
+
   const crearTaller = async () => {
     if (!usuario || !nuevoTaller.nombre.trim()) return
 
     try {
+      const tallerId = globalThis.crypto.randomUUID()
+      const logoUrlInicial = nuevoTaller.logoArchivo ? null : nuevoTaller.logoUrl.trim() || null
+
       const { data: taller, error: tallerError } = await supabase
         .from('talleres')
         .insert({
-          nombre: nuevoTaller.nombre.trim(),
-          direccion: nuevoTaller.direccion.trim() || null,
-          telefono: nuevoTaller.telefono.trim() || null,
+          id: tallerId,
+          ...obtenerDatosTallerFormulario(nuevoTaller, logoUrlInicial),
           creado_por: usuario.id,
         })
         .select()
@@ -452,18 +552,60 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         taller_id: taller.id,
         usuario_id: usuario.id,
         email: usuario.email ?? '',
-        rol: 'administrador',
+        rol: 'propietario',
         estado: 'activo',
       })
 
       if (miembroError) throw miembroError
 
-      setNuevoTaller({ nombre: '', direccion: '', telefono: '' })
-      mostrarMensaje('Taller creado y seleccionado')
+      let logoPendiente = false
+
+      if (nuevoTaller.logoArchivo) {
+        try {
+          const logoUrl = await subirLogoTaller(taller.id, nuevoTaller.logoArchivo)
+          const { error: logoUpdateError } = await supabase
+            .from('talleres')
+            .update({ logo_url: logoUrl })
+            .eq('id', taller.id)
+
+          if (logoUpdateError) throw logoUpdateError
+        } catch {
+          logoPendiente = true
+        }
+      }
+
+      setNuevoTaller(tallerInicial)
+      mostrarMensaje(
+        logoPendiente
+          ? 'Taller creado y seleccionado. La foto no se pudo subir; puedes agregarla editando el taller.'
+          : 'Taller creado y seleccionado',
+      )
       await cargarBase()
       setTallerActivoId(taller.id)
       setVista('dashboard')
       actualizarHashVista('dashboard')
+    } catch (detalle) {
+      mostrarError(detalle)
+    }
+  }
+
+  const actualizarTaller = async (tallerId: string, formulario: TallerFormulario) => {
+    if (!usuario || !tienePermisoEnTaller(tallerId, 'gestionar_taller') || !formulario.nombre.trim()) return
+
+    try {
+      const logoUrl = formulario.logoArchivo
+        ? await subirLogoTaller(tallerId, formulario.logoArchivo)
+        : formulario.logoUrl.trim() || null
+
+      const { error: tallerError } = await supabase
+        .from('talleres')
+        .update(obtenerDatosTallerFormulario(formulario, logoUrl))
+        .eq('id', tallerId)
+
+      if (tallerError) throw tallerError
+
+      mostrarMensaje('Taller actualizado correctamente.')
+      await cargarBase()
     } catch (detalle) {
       mostrarError(detalle)
     }
@@ -525,9 +667,34 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     }
   }
 
+  const subirFotoRepuesto = async (repuestoId: string, archivo: File) => {
+    if (!tallerActivoId) return null
+
+    if (!REPUESTO_FOTO_TIPOS_PERMITIDOS.includes(archivo.type)) {
+      throw new Error('La foto del repuesto debe ser JPG, PNG o WEBP.')
+    }
+
+    if (archivo.size > REPUESTO_FOTO_TAMANIO_MAXIMO) {
+      throw new Error('La foto del repuesto no puede superar los 3 MB.')
+    }
+
+    const extension = archivo.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const ruta = `${tallerActivoId}/${repuestoId}/foto.${extension}`
+
+    const { error: uploadError } = await supabase.storage.from(REPUESTOS_BUCKET).upload(ruta, archivo, {
+      cacheControl: '3600',
+      upsert: true,
+    })
+
+    if (uploadError) throw uploadError
+
+    const { data } = supabase.storage.from(REPUESTOS_BUCKET).getPublicUrl(ruta)
+    return `${data.publicUrl}?v=${Date.now()}`
+  }
+
   const eliminarTaller = async (taller: Taller) => {
-    if (!usuario || !esAdministradorDeTaller(taller.id)) {
-      setError('Solo un administrador activo del taller puede realizar esta acción.')
+    if (!usuario || !tienePermisoEnTaller(taller.id, 'transferir_propiedad')) {
+      setError('Solo el propietario activo del taller puede realizar esta accion.')
       return
     }
 
@@ -574,40 +741,56 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     if (movimientoError) throw movimientoError
   }
 
-  const guardarRepuesto = async () => {
-    if (!usuario || !tallerActivoId || !esAdministrador) return
+  const guardarRepuesto = async (mantenerCargaRapida = false) => {
+    if (!usuario || !tallerActivoId || !puedeGestionarInventario) return
 
-    const anio = Number(formRepuesto.anio)
+    const anioTexto = formRepuesto.anio.trim()
+    const anio = anioTexto ? Number(anioTexto) : null
     const precio = Number(formRepuesto.precio || 0)
     const stockInicial = Number(formRepuesto.stockInicial || 0)
+    const atributos = obtenerAtributosLimpios(formRepuesto.atributos)
 
-    if (
-      !formRepuesto.codigo.trim() ||
-      !formRepuesto.nombre.trim() ||
-      !formRepuesto.marca.trim() ||
-      !formRepuesto.modelo.trim() ||
-      !formRepuesto.categoria.trim() ||
-      !Number.isInteger(anio)
-    ) {
-      setError('Completa código, nombre, marca, modelo, año y categoría antes de guardar el repuesto.')
+    if (!formRepuesto.nombre.trim() || !formRepuesto.categoria.trim()) {
+      setError('Ingresa el nombre y la categoria para guardar el repuesto.')
+      return
+    }
+
+    if (anio !== null && (!Number.isInteger(anio) || anio < 1900 || anio > 2100)) {
+      setError('El año debe estar entre 1900 y 2100, o puede quedar vacio si no lo sabes.')
+      return
+    }
+
+    if (!Number.isFinite(precio) || precio < 0) {
+      setError('El precio debe ser 0 o un monto mayor.')
+      return
+    }
+
+    if (!Number.isInteger(stockInicial) || stockInicial < 0) {
+      setError('El stock inicial debe ser 0 o una cantidad entera mayor.')
       return
     }
 
     try {
       if (repuestoEditando) {
+        const fotoUrl = formRepuesto.fotoArchivo
+          ? await subirFotoRepuesto(repuestoEditando.id, formRepuesto.fotoArchivo)
+          : formRepuesto.fotoUrl.trim() || null
+
         const { error: updateError } = await supabase
           .from('repuestos')
           .update({
-            codigo: formRepuesto.codigo.trim(),
+            codigo: formRepuesto.codigo.trim() || null,
             nombre: formRepuesto.nombre.trim(),
-            marca: formRepuesto.marca.trim(),
-            modelo: formRepuesto.modelo.trim(),
+            marca: formRepuesto.marca.trim() || null,
+            modelo: formRepuesto.modelo.trim() || null,
             anio,
             categoria: formRepuesto.categoria.trim(),
             estado: formRepuesto.estado,
             precio,
             ubicacion: formRepuesto.ubicacion.trim() || null,
             descripcion: formRepuesto.descripcion.trim() || null,
+            foto_url: fotoUrl,
+            atributos,
             actualizado_por: usuario.id,
           })
           .eq('id', repuestoEditando.id)
@@ -615,14 +798,17 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         if (updateError) throw updateError
         mostrarMensaje('Repuesto actualizado')
       } else {
+        const repuestoId = globalThis.crypto.randomUUID()
+        const fotoUrl = formRepuesto.fotoArchivo ? await subirFotoRepuesto(repuestoId, formRepuesto.fotoArchivo) : null
         const { data: creado, error: insertError } = await supabase
           .from('repuestos')
           .insert({
+            id: repuestoId,
             taller_id: tallerActivoId,
-            codigo: formRepuesto.codigo.trim(),
+            codigo: formRepuesto.codigo.trim() || null,
             nombre: formRepuesto.nombre.trim(),
-            marca: formRepuesto.marca.trim(),
-            modelo: formRepuesto.modelo.trim(),
+            marca: formRepuesto.marca.trim() || null,
+            modelo: formRepuesto.modelo.trim() || null,
             anio,
             categoria: formRepuesto.categoria.trim(),
             estado: formRepuesto.estado,
@@ -630,6 +816,8 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
             stock: 0,
             ubicacion: formRepuesto.ubicacion.trim() || null,
             descripcion: formRepuesto.descripcion.trim() || null,
+            foto_url: fotoUrl,
+            atributos,
             creado_por: usuario.id,
           })
           .select()
@@ -644,7 +832,16 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         mostrarMensaje('Repuesto creado')
       }
 
-      setFormRepuesto(repuestoInicial)
+      setFormRepuesto(
+        mantenerCargaRapida && !repuestoEditando
+          ? {
+              ...repuestoInicial,
+              categoria: formRepuesto.categoria,
+              estado: formRepuesto.estado,
+              ubicacion: formRepuesto.ubicacion,
+            }
+          : repuestoInicial,
+      )
       setRepuestoEditando(null)
       await cargarDatosTaller(tallerActivoId)
     } catch (detalle) {
@@ -655,22 +852,25 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   const editarRepuesto = (repuesto: Repuesto) => {
     setRepuestoEditando(repuesto)
     setFormRepuesto({
-      codigo: repuesto.codigo,
+      codigo: repuesto.codigo ?? '',
       nombre: repuesto.nombre,
-      marca: repuesto.marca,
-      modelo: repuesto.modelo,
-      anio: String(repuesto.anio),
+      marca: repuesto.marca ?? '',
+      modelo: repuesto.modelo ?? '',
+      anio: repuesto.anio ? String(repuesto.anio) : '',
       categoria: repuesto.categoria,
       estado: repuesto.estado,
       precio: String(repuesto.precio),
       stockInicial: '0',
       ubicacion: repuesto.ubicacion ?? '',
       descripcion: repuesto.descripcion ?? '',
+      fotoUrl: repuesto.foto_url ?? '',
+      fotoArchivo: null,
+      atributos: repuesto.atributos ?? {},
     })
   }
 
   const eliminarRepuesto = async (repuesto: Repuesto) => {
-    if (!esAdministrador || !tallerActivoId) return
+    if (!puedeGestionarInventario || !tallerActivoId) return
 
     try {
       const { error: deleteError } = await supabase.from('repuestos').delete().eq('id', repuesto.id)
@@ -685,6 +885,8 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   }
 
   const registrarMovimiento = async () => {
+    if (!puedeRegistrarMovimientos) return
+
     const cantidad = Number(formMovimiento.cantidad)
 
     if (!formMovimiento.repuestoId || cantidad <= 0 || !formMovimiento.motivo.trim()) {
@@ -709,20 +911,29 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   }
 
   const agregarMiembro = async () => {
-    if (!tallerActivoId || !esAdministrador || !nuevoMiembro.email.trim()) return
+    if (!tallerActivoId || !puedeGestionarUsuarios || !nuevoMiembro.email.trim()) return
 
     try {
-      const { error: miembroError } = await supabase.from('miembros_taller').insert({
-        taller_id: tallerActivoId,
-        email: nuevoMiembro.email.trim().toLowerCase(),
-        rol: nuevoMiembro.rol,
-        estado: 'invitado',
+      const { data: miembroAgregado, error: miembroError } = await supabase.rpc('agregar_miembro_taller_por_email', {
+        p_taller_id: tallerActivoId,
+        p_email: nuevoMiembro.email.trim().toLowerCase(),
+        p_rol: nuevoMiembro.rol,
       })
 
       if (miembroError) throw miembroError
 
+      const resultado = miembroAgregado?.[0]?.resultado
+
       setNuevoMiembro({ email: '', rol: 'mecanico' })
-      mostrarMensaje('Miembro agregado por email')
+      if (resultado === 'ya_miembro') {
+        mostrarMensaje('Ese usuario ya es miembro activo del taller.')
+      } else if (resultado === 'miembro_activado') {
+        mostrarMensaje('Miembro vinculado al taller. Ya puede acceder con su cuenta.')
+      } else if (resultado === 'invitacion_pendiente_actualizada') {
+        mostrarMensaje('La invitacion pendiente fue actualizada con el rol seleccionado.')
+      } else {
+        mostrarMensaje('Invitacion pendiente creada. Se activara cuando esa persona ingrese con ese email.')
+      }
       await cargarBase()
     } catch (detalle) {
       mostrarError(detalle)
@@ -730,7 +941,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   }
 
   const generarInvitacionLink = async () => {
-    if (!tallerActivoId || !esAdministrador) return
+    if (!tallerActivoId || !puedeGestionarUsuarios) return
 
     setGenerandoInvitacion(true)
 
@@ -758,6 +969,62 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     try {
       await navigator.clipboard.writeText(linkInvitacion)
       mostrarMensaje('Link de invitacion copiado.')
+    } catch (detalle) {
+      mostrarError(detalle)
+    }
+  }
+
+  const cambiarRolMiembro = async (miembro: MiembroTaller, rol: RolTaller) => {
+    if (!puedeGestionarUsuarios || miembro.rol === rol) return
+
+    try {
+      const { data: rolCambiado, error: rolError } = await supabase.rpc('cambiar_rol_miembro_taller', {
+        p_miembro_id: miembro.id,
+        p_rol: rol,
+      })
+
+      if (rolError) throw rolError
+      if (!rolCambiado) throw new Error('No se pudo cambiar el rol del miembro')
+
+      mostrarMensaje('Rol actualizado correctamente.')
+      await cargarBase()
+    } catch (detalle) {
+      mostrarError(detalle)
+    }
+  }
+
+  const eliminarMiembroTaller = async (miembro: MiembroTaller) => {
+    if (!puedeGestionarUsuarios) return
+
+    try {
+      const { data: miembroEliminado, error: miembroError } = await supabase.rpc('eliminar_miembro_taller', {
+        p_miembro_id: miembro.id,
+      })
+
+      if (miembroError) throw miembroError
+      if (!miembroEliminado) throw new Error('No se pudo eliminar el miembro del taller')
+
+      mostrarMensaje('Miembro eliminado del taller.')
+      await cargarBase()
+    } catch (detalle) {
+      mostrarError(detalle)
+    }
+  }
+
+  const transferirPropiedadTaller = async (miembro: MiembroTaller) => {
+    if (!tallerActivoId || !esPropietario) return
+
+    try {
+      const { data: propiedadTransferida, error: propiedadError } = await supabase.rpc('transferir_propiedad_taller', {
+        p_taller_id: tallerActivoId,
+        p_nuevo_propietario_miembro_id: miembro.id,
+      })
+
+      if (propiedadError) throw propiedadError
+      if (!propiedadTransferida) throw new Error('No se pudo transferir la propiedad del taller')
+
+      mostrarMensaje('Propiedad transferida correctamente.')
+      await cargarBase()
     } catch (detalle) {
       mostrarError(detalle)
     }
@@ -798,11 +1065,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     if (!usuario?.email) return
 
     try {
-      const { error: updateError } = await supabase
-        .from('miembros_taller')
-        .update({ usuario_id: usuario.id, estado: 'activo' })
-        .eq('email', usuario.email)
-        .is('usuario_id', null)
+      const { error: updateError } = await supabase.rpc('reclamar_invitaciones_pendientes')
 
       if (updateError) throw updateError
 
@@ -880,11 +1143,11 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       return
     }
 
-    if (tieneTallerActivo && vista === 'usuarios' && !esAdministrador) {
+    if (tieneTallerActivo && vista === 'usuarios' && !puedeGestionarUsuarios) {
       setVista('dashboard')
       actualizarHashVista('dashboard')
     }
-  }, [baseCargada, esAdministrador, tieneTallerActivo, usuarioId, vista])
+  }, [baseCargada, puedeGestionarUsuarios, tieneTallerActivo, usuarioId, vista])
 
   useEffect(() => {
     setPerfilNombre(perfil?.nombre ?? '')
@@ -909,6 +1172,10 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     cargandoSesion,
     error,
     esAdministrador,
+    esPropietario,
+    puedeGestionarInventario,
+    puedeGestionarUsuarios,
+    puedeRegistrarMovimientos,
     aceptandoInvitacion,
     eliminandoCuenta,
     formMovimiento,
@@ -934,17 +1201,21 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     tallerActivoId,
     talleres,
     tieneTallerActivo,
+    tienePermisoEnTaller,
     usuario,
     valorInventario,
     vistaActual,
     vistasDisponibles,
     agregarMiembro,
     aceptarInvitacionLink,
+    actualizarTaller,
+    cambiarRolMiembro,
     cancelarEdicionRepuesto,
     cerrarSesion,
     crearTaller,
     editarRepuesto,
     eliminarCuenta,
+    eliminarMiembroTaller,
     eliminarTaller,
     eliminarRepuesto,
     esAdministradorDeTaller,
@@ -957,6 +1228,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     reclamarInvitacion,
     registrarMovimiento,
     registrarUsuario,
+    transferirPropiedadTaller,
     setBusqueda,
     setFormMovimiento,
     setFormRepuesto,

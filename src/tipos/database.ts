@@ -44,6 +44,13 @@ export type Database = {
           nombre: string
           direccion: string | null
           telefono: string | null
+          whatsapp: string | null
+          email: string | null
+          ciudad: string | null
+          horario: string | null
+          servicios: string | null
+          notas: string | null
+          logo_url: string | null
           creado_por: string | null
           creado_en: string
         },
@@ -52,6 +59,13 @@ export type Database = {
           nombre: string
           direccion?: string | null
           telefono?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          ciudad?: string | null
+          horario?: string | null
+          servicios?: string | null
+          notas?: string | null
+          logo_url?: string | null
           creado_por?: string
           creado_en?: string
         },
@@ -59,6 +73,13 @@ export type Database = {
           nombre?: string
           direccion?: string | null
           telefono?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          ciudad?: string | null
+          horario?: string | null
+          servicios?: string | null
+          notas?: string | null
+          logo_url?: string | null
         }
       >
       miembros_taller: Tabla<
@@ -119,17 +140,19 @@ export type Database = {
         {
           id: string
           taller_id: string
-          codigo: string
+          codigo: string | null
           nombre: string
-          marca: string
-          modelo: string
-          anio: number
+          marca: string | null
+          modelo: string | null
+          anio: number | null
           categoria: string
           estado: EstadoRepuesto
           precio: number
           stock: number
           ubicacion: string | null
           descripcion: string | null
+          foto_url: string | null
+          atributos: Record<string, string>
           ultimo_movimiento: string | null
           creado_por: string | null
           actualizado_por: string | null
@@ -139,17 +162,19 @@ export type Database = {
         {
           id?: string
           taller_id: string
-          codigo: string
+          codigo?: string | null
           nombre: string
-          marca: string
-          modelo: string
-          anio: number
+          marca?: string | null
+          modelo?: string | null
+          anio?: number | null
           categoria: string
           estado?: EstadoRepuesto
           precio?: number
           stock?: number
           ubicacion?: string | null
           descripcion?: string | null
+          foto_url?: string | null
+          atributos?: Record<string, string>
           ultimo_movimiento?: string | null
           creado_por?: string
           actualizado_por?: string | null
@@ -157,16 +182,18 @@ export type Database = {
           actualizado_en?: string
         },
         {
-          codigo?: string
+          codigo?: string | null
           nombre?: string
-          marca?: string
-          modelo?: string
-          anio?: number
+          marca?: string | null
+          modelo?: string | null
+          anio?: number | null
           categoria?: string
           estado?: EstadoRepuesto
           precio?: number
           ubicacion?: string | null
           descripcion?: string | null
+          foto_url?: string | null
+          atributos?: Record<string, string>
           actualizado_por?: string | null
         }
       >
@@ -232,6 +259,33 @@ export type Database = {
       eliminar_cuenta_propia: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      cambiar_rol_miembro_taller: {
+        Args: { p_miembro_id: string; p_rol: RolTaller }
+        Returns: boolean
+      }
+      eliminar_miembro_taller: {
+        Args: { p_miembro_id: string }
+        Returns: boolean
+      }
+      transferir_propiedad_taller: {
+        Args: { p_taller_id: string; p_nuevo_propietario_miembro_id: string }
+        Returns: boolean
+      }
+      reclamar_invitaciones_pendientes: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      agregar_miembro_taller_por_email: {
+        Args: { p_taller_id: string; p_email: string; p_rol: RolTaller }
+        Returns: {
+          resultado: 'miembro_activado' | 'invitacion_pendiente' | 'invitacion_pendiente_actualizada' | 'ya_miembro'
+          miembro_id: string
+          email: string
+          usuario_id: string | null
+          rol: RolTaller
+          estado: EstadoMiembro
+        }[]
       }
       generar_invitacion_taller: {
         Args: { p_taller_id: string; p_rol: RolTaller }
