@@ -1,8 +1,12 @@
-import { Search } from 'lucide-react'
-import type { EstadoRepuesto, Repuesto } from '../tipos/dominio'
+import {
+  HiOutlineArchiveBox,
+  HiOutlineClipboardDocumentList,
+  HiOutlineMagnifyingGlass,
+} from 'react-icons/hi2'
+import type { Repuesto } from '../tipos/dominio'
 import type { RepuestoFormulario } from '../tipos/formularios'
+import { FormularioRepuesto } from '../components/inventario/FormularioRepuesto'
 import { TablaRepuestos } from '../components/tablas/TablaRepuestos'
-import { Input } from '../components/ui/Input'
 import { Panel } from '../components/ui/Panel'
 
 export function Inventario({
@@ -24,84 +28,54 @@ export function Inventario({
   formRepuesto: RepuestoFormulario
   setFormRepuesto: (value: RepuestoFormulario) => void
   repuestoEditando: Repuesto | null
-  guardarRepuesto: () => Promise<void>
+  guardarRepuesto: (mantenerCargaRapida?: boolean) => Promise<void>
   editarRepuesto: (repuesto: Repuesto) => void
   eliminarRepuesto: (repuesto: Repuesto) => Promise<void>
   esAdministrador: boolean
   cancelarEdicion: () => void
 }) {
   return (
-    <div className="module-grid">
+    <div className="module-grid inventory-module-grid">
       {esAdministrador ? (
-        <Panel titulo={repuestoEditando ? 'Editar repuesto' : 'Nuevo repuesto'}>
-          <div className="grid gap-5">
-            <Input value={formRepuesto.codigo} onChange={(codigo) => setFormRepuesto({ ...formRepuesto, codigo })} label="Codigo" />
-            <Input value={formRepuesto.nombre} onChange={(nombre) => setFormRepuesto({ ...formRepuesto, nombre })} label="Nombre" />
-            <div className="grid grid-cols-2 gap-3">
-              <Input value={formRepuesto.marca} onChange={(marca) => setFormRepuesto({ ...formRepuesto, marca })} label="Marca" />
-              <Input value={formRepuesto.modelo} onChange={(modelo) => setFormRepuesto({ ...formRepuesto, modelo })} label="Modelo" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input value={formRepuesto.anio} onChange={(anio) => setFormRepuesto({ ...formRepuesto, anio })} label="Año" type="number" />
-              <Input value={formRepuesto.categoria} onChange={(categoria) => setFormRepuesto({ ...formRepuesto, categoria })} label="Categoria" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Input value={formRepuesto.precio} onChange={(precio) => setFormRepuesto({ ...formRepuesto, precio })} label="Precio" type="number" />
-              <Input
-                value={formRepuesto.stockInicial}
-                onChange={(stockInicial) => setFormRepuesto({ ...formRepuesto, stockInicial })}
-                label="Stock inicial"
-                type="number"
-                disabled={Boolean(repuestoEditando)}
-              />
-            </div>
-            <label className="block">
-              <span className="field-label">Estado</span>
-              <select
-                className="control"
-                value={formRepuesto.estado}
-                onChange={(event) => setFormRepuesto({ ...formRepuesto, estado: event.target.value as EstadoRepuesto })}
-              >
-                <option value="disponible">Disponible</option>
-                <option value="reservado">Reservado</option>
-                <option value="usado">Usado</option>
-                <option value="descartado">Descartado</option>
-              </select>
-            </label>
-            <Input value={formRepuesto.ubicacion} onChange={(ubicacion) => setFormRepuesto({ ...formRepuesto, ubicacion })} label="Ubicacion" />
-            <Input
-              value={formRepuesto.descripcion}
-              onChange={(descripcion) => setFormRepuesto({ ...formRepuesto, descripcion })}
-              label="Descripcion"
-            />
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button className="primary-button" onClick={() => void guardarRepuesto()}>
-                Guardar
-              </button>
-              {repuestoEditando ? (
-                <button className="secondary-button" onClick={cancelarEdicion}>
-                  Cancelar
-                </button>
-              ) : null}
-            </div>
-          </div>
+        <Panel titulo="">
+          <FormularioRepuesto
+            formRepuesto={formRepuesto}
+            setFormRepuesto={setFormRepuesto}
+            repuestoEditando={repuestoEditando}
+            guardarRepuesto={guardarRepuesto}
+            cancelarEdicion={cancelarEdicion}
+          />
         </Panel>
       ) : (
-        <Panel titulo="Inventario en consulta">
+        <Panel
+          titulo="Inventario en consulta"
+          icon={
+            <div className="module-section-icon" aria-hidden="true">
+              <HiOutlineArchiveBox size={23} />
+            </div>
+          }
+        >
           <p className="section-copy">
-            Tu rol permite consultar repuestos y registrar movimientos, pero no editar fichas de inventario.
+            Tu rol permite consultar repuestos, pero no editar fichas de inventario.
           </p>
         </Panel>
       )}
 
-      <Panel titulo="Listado de repuestos">
+      <Panel
+        titulo="Listado de repuestos"
+        icon={
+          <div className="module-section-icon" aria-hidden="true">
+            <HiOutlineClipboardDocumentList size={23} />
+          </div>
+        }
+      >
         <div className="control mb-6 flex items-center gap-3 px-4 py-2">
-          <Search size={18} className="text-[var(--verde-taller)]" />
+          <HiOutlineMagnifyingGlass size={18} className="text-[var(--verde-taller)]" />
           <input
             className="w-full bg-transparent font-semibold outline-none"
             value={busqueda}
             onChange={(event) => setBusqueda(event.target.value)}
-            placeholder="Buscar por codigo, marca, modelo, categoria o estado"
+            placeholder="Buscar por nombre, codigo, marca, modelo, categoria, estado o detalle"
           />
         </div>
         <TablaRepuestos

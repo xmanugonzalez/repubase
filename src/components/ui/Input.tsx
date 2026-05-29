@@ -4,12 +4,14 @@ export function Input({
   onChange,
   type = 'text',
   disabled = false,
+  placeholder,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   type?: string
   disabled?: boolean
+  placeholder?: string
 }) {
   return (
     <label className="block">
@@ -20,6 +22,7 @@ export function Input({
         onChange={(event) => onChange(event.target.value)}
         type={type}
         disabled={disabled}
+        placeholder={placeholder}
       />
     </label>
   )
