@@ -10,19 +10,22 @@ import { Alertas } from './pages/Alertas'
 import { Dashboard } from './pages/Dashboard'
 import { Inventario } from './pages/Inventario'
 import { Movimientos } from './pages/Movimientos'
+import { NoEncontrado } from './pages/NoEncontrado'
 import { Perfil } from './pages/Perfil'
 import { Talleres } from './pages/Talleres'
 import { Usuarios } from './pages/Usuarios'
 import type { Vista } from './tipos/dominio'
 
 function App() {
-  const { invitacionToken, vistaDesdeRuta, navegar } = useRutaHash()
+  const { invitacionToken, rutaEncontrada, ruta, vistaDesdeRuta, navegar } = useRutaHash()
   const repubase = useRepubase(vistaDesdeRuta, invitacionToken)
   const { setVista } = repubase
 
   useEffect(() => {
+    if (!rutaEncontrada) return
+
     setVista(vistaDesdeRuta)
-  }, [setVista, vistaDesdeRuta])
+  }, [rutaEncontrada, setVista, vistaDesdeRuta])
 
   const seleccionarVista = (vista: Vista) => {
     repubase.setVista(vista)
@@ -76,7 +79,16 @@ function App() {
         <Alerta tipo="info" texto="Activando invitacion..." />
       ) : null}
 
-      <RutaActual repubase={repubase} />
+      {rutaEncontrada ? (
+        <RutaActual repubase={repubase} />
+      ) : (
+        <NoEncontrado
+          ruta={ruta}
+          tieneTallerActivo={repubase.tieneTallerActivo}
+          onIrPrincipal={() => seleccionarVista(repubase.tieneTallerActivo ? 'dashboard' : 'talleres')}
+          onIrTalleres={() => seleccionarVista('talleres')}
+        />
+      )}
     </AppLayout>
   )
 }

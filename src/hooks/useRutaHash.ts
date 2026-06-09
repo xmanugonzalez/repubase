@@ -58,6 +58,7 @@ export function useRutaHash() {
   }, [])
 
   const invitacionToken = obtenerTokenInvitacion(ruta)
+  const rutaEncontrada = Boolean(invitacionToken) || Boolean(rutas[ruta])
   const vistaDesdeRuta = invitacionToken ? 'talleres' : rutas[ruta] ?? 'dashboard'
   const navegar = (vista: Vista) => {
     const proximaRuta = rutasPorVista[vista]
@@ -72,6 +73,7 @@ export function useRutaHash() {
 
   return {
     invitacionToken,
+    rutaEncontrada,
     ruta,
     vistaDesdeRuta,
     navegar,
