@@ -52,7 +52,7 @@ export const repuestoInicial: RepuestoFormulario = {
   categoria: '',
   estado: 'disponible',
   precio: '0',
-  stockInicial: '0',
+  stockInicial: '1',
   ubicacion: '',
   descripcion: '',
   fotoUrl: '',

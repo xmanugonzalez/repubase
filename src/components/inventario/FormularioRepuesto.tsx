@@ -57,6 +57,12 @@ export function FormularioRepuesto({
     })
   }
 
+  const actualizarStockInicial = (stockInicial: string) => {
+    if (stockInicial !== '' && !/^[1-9]\d*$/.test(stockInicial)) return
+
+    setFormRepuesto({ ...formRepuesto, stockInicial })
+  }
+
   return (
     <div className="inventory-form">
       <div className="inventory-form-hero">
@@ -142,9 +148,11 @@ export function FormularioRepuesto({
 
           <Input
             value={formRepuesto.stockInicial}
-            onChange={(stockInicial) => setFormRepuesto({ ...formRepuesto, stockInicial })}
+            onChange={actualizarStockInicial}
             label="Stock inicial"
             type="number"
+            min={repuestoEditando ? 0 : 1}
+            step={1}
             disabled={Boolean(repuestoEditando)}
           />
 

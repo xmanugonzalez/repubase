@@ -765,8 +765,8 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       return
     }
 
-    if (!Number.isInteger(stockInicial) || stockInicial < 0) {
-      setError('El stock inicial debe ser 0 o una cantidad entera mayor.')
+    if (!repuestoEditando && (!Number.isInteger(stockInicial) || stockInicial <= 0)) {
+      setError('El stock inicial debe ser una cantidad entera mayor a 0.')
       return
     }
 

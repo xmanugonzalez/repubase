@@ -5,6 +5,8 @@ export function Input({
   type = 'text',
   disabled = false,
   placeholder,
+  min,
+  step,
 }: {
   label: string
   value: string
@@ -12,6 +14,8 @@ export function Input({
   type?: string
   disabled?: boolean
   placeholder?: string
+  min?: number
+  step?: number
 }) {
   return (
     <label className="block">
@@ -23,6 +27,8 @@ export function Input({
         type={type}
         disabled={disabled}
         placeholder={placeholder}
+        min={min}
+        step={step}
       />
     </label>
   )
