@@ -442,7 +442,8 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   }
 
   const iniciarSesion = async (email: string, password: string) => {
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password })
+    const emailLimpio = email.trim().toLowerCase()
+    const { error: authError } = await supabase.auth.signInWithPassword({ email: emailLimpio, password })
 
     if (authError) {
       mostrarError(authError)
@@ -453,10 +454,16 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   }
 
   const registrarUsuario = async (email: string, password: string, nombre: string) => {
-    const { error: authError } = await supabase.auth.signUp({
-      email,
+    const emailLimpio = email.trim().toLowerCase()
+    const nombreLimpio = nombre.trim()
+    const redirectTo = obtenerRedirectOAuth()
+    const { data: registroData, error: authError } = await supabase.auth.signUp({
+      email: emailLimpio,
       password,
-      options: { data: { nombre } },
+      options: {
+        data: { nombre: nombreLimpio },
+        emailRedirectTo: redirectTo,
+      },
     })
 
     if (authError) {
@@ -464,7 +471,17 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       return
     }
 
-    mostrarMensaje('Registro creado. Revisa tu correo si se solicita confirmar la cuenta.')
+    if (registroData.user?.identities?.length === 0) {
+      mostrarError(new Error('user already registered'))
+      return
+    }
+
+    if (registroData.session) {
+      mostrarMensaje('Cuenta creada correctamente. Sesion iniciada.')
+      return
+    }
+
+    mostrarMensaje('Te enviamos un correo de confirmacion. Abre el enlace para activar tu cuenta.')
   }
 
   const iniciarConGoogle = async () => {
