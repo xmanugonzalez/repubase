@@ -87,44 +87,48 @@ const obtenerMensajeErrorUsuario = (detalle: unknown) => {
   const mensaje = mensajeOriginal.toLowerCase()
 
   if (mensaje.includes('invalid login credentials')) {
-    return 'El correo o la contraseña no coinciden. Revisa los datos e intenta nuevamente.'
+    return 'El correo o la contrasena no coinciden. Revisa los datos e intenta nuevamente.'
   }
 
   if (mensaje.includes('email not confirmed')) {
-    return 'Tu correo todavía no está confirmado. Revisa tu bandeja de entrada antes de iniciar sesión.'
+    return 'Tu correo todavia no esta confirmado. Revisa tu bandeja de entrada antes de iniciar sesion.'
   }
 
   if (mensaje.includes('user already registered') || mensaje.includes('already registered')) {
-    return 'Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo para registrarte.'
+    return 'Ya existe una cuenta con ese correo. Inicia sesion o usa otro correo para registrarte.'
   }
 
-  if (mensaje.includes('invitacion invalida') || mensaje.includes('invitaciÃ³n invÃ¡lida')) {
-    return 'El link de invitaciÃ³n ya no es vÃ¡lido. Pide al administrador que genere uno nuevo.'
+  if (mensaje.includes('user is banned') || mensaje.includes('banned')) {
+    return 'Tu cuenta esta desactivada. Contacta con un administrador para solicitar la reactivacion.'
+  }
+
+  if (mensaje.includes('invitacion invalida')) {
+    return 'El link de invitacion ya no es valido. Pide al administrador que genere uno nuevo.'
   }
 
   if (mensaje.includes('password') && (mensaje.includes('weak') || mensaje.includes('at least'))) {
-    return 'La contraseña no cumple con los requisitos mínimos. Usa una contraseña más segura.'
+    return 'La contrasena no cumple con los requisitos minimos. Usa una contrasena mas segura.'
   }
 
   if (mensaje.includes('mime') || mensaje.includes('file size') || mensaje.includes('payload')) {
-    return 'La imagen no cumple con el formato o tamaño permitido. Usa una foto JPG, PNG o WEBP dentro del limite indicado.'
+    return 'La imagen no cumple con el formato o tamano permitido. Usa una foto JPG, PNG o WEBP dentro del limite indicado.'
   }
 
   if (mensaje.includes('duplicate key') || mensaje.includes('unique')) {
-    return 'Ya existe un registro con esos datos. Revisa el código, correo o nombre antes de guardar.'
+    return 'Ya existe un registro con esos datos. Revisa el codigo, correo o nombre antes de guardar.'
   }
 
   if (mensaje.includes('solo un administrador activo')) {
-    return 'Solo un administrador activo del taller puede realizar esta acción.'
+    return 'Solo un administrador activo del taller puede realizar esta accion.'
   }
 
   if (
     mensaje.includes('functions') ||
     mensaje.includes('edge function') ||
     mensaje.includes('non-2xx') ||
-    mensaje.includes('eliminar-cuenta')
+    mensaje.includes('desactivar-cuenta')
   ) {
-    return 'No pudimos eliminar tu cuenta porque falta activar el servicio seguro de eliminación. Revisa que la función esté desplegada en Supabase e intenta nuevamente.'
+    return 'No pudimos desactivar tu cuenta porque falta activar el servicio seguro de desactivacion. Revisa que la funcion este desplegada en Supabase e intenta nuevamente.'
   }
 
   if (
@@ -132,22 +136,23 @@ const obtenerMensajeErrorUsuario = (detalle: unknown) => {
     mensaje.includes('permission denied') ||
     mensaje.includes('policy') ||
     mensaje.includes('not authorized') ||
+    mensaje.includes('desactivar_taller') ||
     mensaje.includes('eliminar_taller') ||
     mensaje.includes('function') ||
     mensaje.includes('rpc')
   ) {
-    return 'No pudimos completar la acción porque tu usuario no tiene permisos suficientes o el taller requiere una configuración pendiente.'
+    return 'No pudimos completar la accion porque tu usuario no tiene permisos suficientes o el taller requiere una configuracion pendiente.'
   }
 
   if (mensaje.includes('foreign key') || mensaje.includes('restrict')) {
-    return 'No se puede eliminar porque todavía existen datos asociados. Revisa los movimientos o registros vinculados.'
+    return 'No se puede eliminar porque todavia existen datos asociados. Revisa los movimientos o registros vinculados.'
   }
 
   if (mensaje.includes('failed to fetch') || mensaje.includes('network') || mensaje.includes('fetch')) {
-    return 'No pudimos conectar con el servicio. Revisa tu conexión e intenta nuevamente.'
+    return 'No pudimos conectar con el servicio. Revisa tu conexion e intenta nuevamente.'
   }
 
-  return 'No pudimos completar la acción. Revisa los datos ingresados e intenta nuevamente.'
+  return 'No pudimos completar la accion. Revisa los datos ingresados e intenta nuevamente.'
 }
 
 export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: string | null = null) {
@@ -175,7 +180,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
   })
   const [perfilNombre, setPerfilNombre] = useState('')
   const [subiendoAvatar, setSubiendoAvatar] = useState(false)
-  const [eliminandoCuenta, setEliminandoCuenta] = useState(false)
+  const [desactivandoCuenta, setDesactivandoCuenta] = useState(false)
   const [rolInvitacionLink, setRolInvitacionLink] = useState<RolTaller>('mecanico')
   const [linkInvitacion, setLinkInvitacion] = useState('')
   const [generandoInvitacion, setGenerandoInvitacion] = useState(false)
@@ -346,6 +351,13 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
       if (perfilError) throw perfilError
       if (propiaMembresiaError) throw propiaMembresiaError
 
+      if (perfilData.estado === 'desactivado') {
+        await supabase.auth.signOut()
+        limpiarDatos()
+        setError('Tu cuenta esta desactivada. Contacta con un administrador para solicitar la reactivacion.')
+        return
+      }
+
       setPerfil(perfilData)
 
       const tallerIds = [...new Set((propiaMembresiaData ?? []).map((miembro) => miembro.taller_id))]
@@ -361,21 +373,31 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         .from('talleres')
         .select('*')
         .in('id', tallerIds)
+        .eq('estado', 'activo')
         .order('creado_en', { ascending: true })
 
       if (talleresError) throw talleresError
+
+      const talleresDisponibles = talleresData ?? []
+      const talleresActivosIds = talleresDisponibles.map((taller) => taller.id)
+
+      if (talleresActivosIds.length === 0) {
+        setMiembros([])
+        setTalleres([])
+        setTallerActivoId('')
+        return
+      }
 
       // Cargamos todos los miembros de los talleres a los que pertenece el usuario
       // (no solo los propios) para que el administrador pueda ver la lista completa
       const { data: todosMiembrosData, error: todosMiembrosError } = await supabase
         .from('miembros_taller')
         .select('*')
-        .in('taller_id', tallerIds)
+        .in('taller_id', talleresActivosIds)
         .order('creado_en', { ascending: true })
 
       if (todosMiembrosError) throw todosMiembrosError
 
-      const talleresDisponibles = talleresData ?? []
       const miembrosConPerfil = await agregarPerfilesAMiembros((todosMiembrosData ?? []) as MiembroTaller[])
 
       setMiembros(miembrosConPerfil)
@@ -464,32 +486,32 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     limpiarDatos()
   }
 
-  const eliminarCuenta = async () => {
+  const desactivarCuenta = async () => {
     if (!usuario) return
 
-    setEliminandoCuenta(true)
+    setDesactivandoCuenta(true)
 
     try {
-      const { data: cuentaEliminada, error: deleteError } = await supabase.functions.invoke<{ ok: boolean }>(
-        'eliminar-cuenta',
+      const { data: cuentaDesactivada, error: deactivateError } = await supabase.functions.invoke<{ ok: boolean }>(
+        'desactivar-cuenta',
         {
           method: 'POST',
         },
       )
 
-      if (deleteError) throw deleteError
+      if (deactivateError) throw deactivateError
 
-      if (!cuentaEliminada?.ok) {
-        throw new Error('eliminar-cuenta no confirmó la eliminación')
+      if (!cuentaDesactivada?.ok) {
+        throw new Error('desactivar-cuenta no confirmo la desactivacion')
       }
 
       await supabase.auth.signOut()
       limpiarDatos()
-      mostrarMensaje('Tu cuenta fue eliminada correctamente.')
+      mostrarMensaje('Tu cuenta fue desactivada correctamente. Contacta con un administrador si necesitas reactivarla.')
     } catch (detalle) {
       mostrarError(detalle)
     } finally {
-      setEliminandoCuenta(false)
+      setDesactivandoCuenta(false)
     }
   }
 
@@ -692,21 +714,22 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     return `${data.publicUrl}?v=${Date.now()}`
   }
 
-  const eliminarTaller = async (taller: Taller) => {
+  const desactivarTaller = async (taller: Taller) => {
     if (!usuario || !tienePermisoEnTaller(taller.id, 'transferir_propiedad')) {
       setError('Solo el propietario activo del taller puede realizar esta accion.')
       return
     }
 
     try {
-      const { data: tallerEliminado, error: deleteError } = await supabase.rpc('eliminar_taller', {
+      const { data: tallerDesactivado, error: deactivateError } = await supabase.rpc('desactivar_taller', {
         p_taller_id: taller.id,
+        p_motivo: 'Solicitud del propietario desde la app',
       })
 
-      if (deleteError) throw deleteError
+      if (deactivateError) throw deactivateError
 
-      if (!tallerEliminado) {
-        throw new Error('No pudimos eliminar el taller porque falta una configuración de permisos o tu rol no está activo.')
+      if (!tallerDesactivado) {
+        throw new Error('No pudimos desactivar el taller porque falta una configuracion de permisos o tu rol no esta activo.')
       }
 
       if (tallerActivoId === taller.id) {
@@ -714,7 +737,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
         setMovimientos([])
       }
 
-      mostrarMensaje(`Taller "${taller.nombre}" eliminado correctamente.`)
+      mostrarMensaje(`Taller "${taller.nombre}" desactivado correctamente.`)
       await cargarBase()
     } catch (detalle) {
       mostrarError(detalle)
@@ -1177,7 +1200,7 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     puedeGestionarUsuarios,
     puedeRegistrarMovimientos,
     aceptandoInvitacion,
-    eliminandoCuenta,
+    desactivandoCuenta,
     formMovimiento,
     formRepuesto,
     generandoInvitacion,
@@ -1214,9 +1237,9 @@ export function useRepubase(vistaInicial: Vista = 'dashboard', invitacionToken: 
     cerrarSesion,
     crearTaller,
     editarRepuesto,
-    eliminarCuenta,
+    desactivarCuenta,
     eliminarMiembroTaller,
-    eliminarTaller,
+    desactivarTaller,
     eliminarRepuesto,
     esAdministradorDeTaller,
     guardarRepuesto,

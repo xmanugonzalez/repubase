@@ -1,6 +1,7 @@
 import type {
   EstadoMiembro,
   EstadoRepuesto,
+  EstadoRegistro,
   RolTaller,
   TipoMovimiento,
 } from './dominio'
@@ -23,6 +24,10 @@ export type Database = {
           nombre: string | null
           email: string
           avatar_url: string | null
+          estado: EstadoRegistro
+          desactivado_en: string | null
+          desactivado_por: string | null
+          motivo_desactivacion: string | null
           creado_en: string
         },
         {
@@ -30,12 +35,20 @@ export type Database = {
           nombre?: string | null
           email: string
           avatar_url?: string | null
+          estado?: EstadoRegistro
+          desactivado_en?: string | null
+          desactivado_por?: string | null
+          motivo_desactivacion?: string | null
           creado_en?: string
         },
         {
           nombre?: string | null
           email?: string
           avatar_url?: string | null
+          estado?: EstadoRegistro
+          desactivado_en?: string | null
+          desactivado_por?: string | null
+          motivo_desactivacion?: string | null
         }
       >
       talleres: Tabla<
@@ -52,6 +65,10 @@ export type Database = {
           notas: string | null
           logo_url: string | null
           creado_por: string | null
+          estado: EstadoRegistro
+          desactivado_en: string | null
+          desactivado_por: string | null
+          motivo_desactivacion: string | null
           creado_en: string
         },
         {
@@ -67,6 +84,10 @@ export type Database = {
           notas?: string | null
           logo_url?: string | null
           creado_por?: string
+          estado?: EstadoRegistro
+          desactivado_en?: string | null
+          desactivado_por?: string | null
+          motivo_desactivacion?: string | null
           creado_en?: string
         },
         {
@@ -80,6 +101,10 @@ export type Database = {
           servicios?: string | null
           notas?: string | null
           logo_url?: string | null
+          estado?: EstadoRegistro
+          desactivado_en?: string | null
+          desactivado_por?: string | null
+          motivo_desactivacion?: string | null
         }
       >
       miembros_taller: Tabla<
@@ -252,6 +277,10 @@ export type Database = {
     }
     Views: Record<string, never>
     Functions: {
+      desactivar_taller: {
+        Args: { p_taller_id: string; p_motivo?: string | null }
+        Returns: boolean
+      }
       eliminar_taller: {
         Args: { p_taller_id: string }
         Returns: boolean

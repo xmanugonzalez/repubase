@@ -106,10 +106,10 @@ function RutaActual({ repubase }: { repubase: ReturnType<typeof useRepubase> }) 
         setNuevoTaller={repubase.setNuevoTaller}
         crearTaller={repubase.crearTaller}
         actualizarTaller={repubase.actualizarTaller}
-        eliminarTaller={repubase.eliminarTaller}
+        desactivarTaller={repubase.desactivarTaller}
         seleccionarTaller={repubase.setTallerActivoId}
         puedeEditarTaller={(tallerId) => repubase.tienePermisoEnTaller(tallerId, 'gestionar_taller')}
-        puedeEliminarTaller={(tallerId) => repubase.tienePermisoEnTaller(tallerId, 'transferir_propiedad')}
+        puedeDesactivarTaller={(tallerId) => repubase.tienePermisoEnTaller(tallerId, 'transferir_propiedad')}
       />
     )
   }
@@ -199,8 +199,8 @@ function PerfilUsuario({ repubase }: { repubase: ReturnType<typeof useRepubase> 
       guardarPerfil={repubase.guardarPerfil}
       subirFotoPerfil={repubase.subirFotoPerfil}
       subiendoAvatar={repubase.subiendoAvatar}
-      eliminarCuenta={repubase.eliminarCuenta}
-      eliminandoCuenta={repubase.eliminandoCuenta}
+      desactivarCuenta={repubase.desactivarCuenta}
+      desactivandoCuenta={repubase.desactivandoCuenta}
       miembros={repubase.miembros}
       talleres={repubase.talleres}
       tallerActivoId={repubase.tallerActivoId}

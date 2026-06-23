@@ -240,29 +240,29 @@ export function Talleres({
   setNuevoTaller,
   crearTaller,
   actualizarTaller,
-  eliminarTaller,
+  desactivarTaller,
   seleccionarTaller,
   puedeEditarTaller,
-  puedeEliminarTaller,
+  puedeDesactivarTaller,
 }: {
   talleres: Taller[]
   nuevoTaller: TallerFormulario
   setNuevoTaller: (value: TallerFormulario) => void
   crearTaller: () => Promise<void>
   actualizarTaller: (tallerId: string, formulario: TallerFormulario) => Promise<void>
-  eliminarTaller: (taller: Taller) => Promise<void>
+  desactivarTaller: (taller: Taller) => Promise<void>
   seleccionarTaller: (id: string) => void
   puedeEditarTaller: (tallerId: string) => boolean
-  puedeEliminarTaller: (tallerId: string) => boolean
+  puedeDesactivarTaller: (tallerId: string) => boolean
 }) {
-  const [tallerParaEliminar, setTallerParaEliminar] = useState<Taller | null>(null)
+  const [tallerParaDesactivar, setTallerParaDesactivar] = useState<Taller | null>(null)
   const [tallerEditando, setTallerEditando] = useState<Taller | null>(null)
   const [formEdicion, setFormEdicion] = useState<TallerFormulario>(tallerInicial)
   const [confirmacion, setConfirmacion] = useState('')
-  const nombreConfirmado = Boolean(tallerParaEliminar && confirmacion.trim() === tallerParaEliminar.nombre)
+  const nombreConfirmado = Boolean(tallerParaDesactivar && confirmacion.trim() === tallerParaDesactivar.nombre)
 
   const cerrarModal = () => {
-    setTallerParaEliminar(null)
+    setTallerParaDesactivar(null)
     setConfirmacion('')
   }
 
@@ -276,10 +276,10 @@ export function Talleres({
     setFormEdicion(tallerInicial)
   }
 
-  const confirmarEliminacion = async () => {
-    if (!tallerParaEliminar || !nombreConfirmado) return
+  const confirmarDesactivacion = async () => {
+    if (!tallerParaDesactivar || !nombreConfirmado) return
 
-    await eliminarTaller(tallerParaEliminar)
+    await desactivarTaller(tallerParaDesactivar)
     cerrarModal()
   }
 
@@ -392,14 +392,14 @@ export function Talleres({
                         </button>
                       </>
                     ) : null}
-                    {puedeEliminarTaller(taller.id) ? (
+                    {puedeDesactivarTaller(taller.id) ? (
                       <>
                         <button
                           type="button"
                           className="danger-icon-button"
-                          aria-label={`Eliminar taller ${taller.nombre}`}
+                          aria-label={`Desactivar taller ${taller.nombre}`}
                           onClick={() => {
-                            setTallerParaEliminar(taller)
+                            setTallerParaDesactivar(taller)
                             setConfirmacion('')
                           }}
                         >
@@ -424,9 +424,9 @@ export function Talleres({
         </Panel>
       </div>
 
-      {tallerParaEliminar ? (
+      {tallerParaDesactivar ? (
         <div className="modal-backdrop" role="presentation">
-          <section className="delete-modal" role="dialog" aria-modal="true" aria-labelledby="eliminar-taller-titulo">
+          <section className="delete-modal" role="dialog" aria-modal="true" aria-labelledby="desactivar-taller-titulo">
             <div className="delete-modal-header">
               <div className="delete-modal-icon">
                 <PiWarningDiamondBold size={24} />
@@ -436,31 +436,31 @@ export function Talleres({
               </button>
             </div>
 
-            <h3 id="eliminar-taller-titulo">Eliminar taller</h3>
+            <h3 id="desactivar-taller-titulo">Desactivar taller</h3>
             <p>
-              Esta accion eliminara el taller <strong>{tallerParaEliminar.nombre}</strong> y sus datos asociados del
-              sistema. No podras deshacer este cambio desde Repubase.
+              Esta accion desactivara el taller <strong>{tallerParaDesactivar.nombre}</strong>. Sus datos, inventario y
+              movimientos quedaran conservados para historial. Para reactivarlo, contacta con un administrador.
             </p>
 
             <form
               className="delete-confirm-form"
               onSubmit={(event) => {
                 event.preventDefault()
-                void confirmarEliminacion()
+                void confirmarDesactivacion()
               }}
             >
-              <label htmlFor="confirmar-eliminar-taller">
-                Para confirmar, escribe <strong>"{tallerParaEliminar.nombre}"</strong> en el campo de abajo.
+              <label htmlFor="confirmar-desactivar-taller">
+                Para confirmar, escribe <strong>"{tallerParaDesactivar.nombre}"</strong> en el campo de abajo.
               </label>
               <input
-                id="confirmar-eliminar-taller"
+                id="confirmar-desactivar-taller"
                 value={confirmacion}
                 onChange={(event) => setConfirmacion(event.target.value)}
                 autoFocus
                 autoComplete="off"
               />
               <button className="danger-button" type="submit" disabled={!nombreConfirmado}>
-                Eliminar este taller
+                Desactivar este taller
               </button>
             </form>
           </section>

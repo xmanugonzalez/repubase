@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Camera, Mail, ShieldCheck, Trash2, UserRound, Wrench, X } from 'lucide-react'
+import { AlertTriangle, Camera, Mail, ShieldCheck, UserMinus, UserRound, Wrench, X } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { MiembroTaller, Perfil as PerfilUsuario, Taller } from '../tipos/dominio'
 import { obtenerRolLegible } from '../modulos/talleres/permisos'
@@ -16,8 +16,8 @@ export function Perfil({
   guardarPerfil,
   subirFotoPerfil,
   subiendoAvatar,
-  eliminarCuenta,
-  eliminandoCuenta,
+  desactivarCuenta,
+  desactivandoCuenta,
   miembros,
   talleres,
   tallerActivoId,
@@ -29,37 +29,37 @@ export function Perfil({
   guardarPerfil: () => Promise<void>
   subirFotoPerfil: (archivo: File) => Promise<void>
   subiendoAvatar: boolean
-  eliminarCuenta: () => Promise<void>
-  eliminandoCuenta: boolean
+  desactivarCuenta: () => Promise<void>
+  desactivandoCuenta: boolean
   miembros: MiembroTaller[]
   talleres: Taller[]
   tallerActivoId: string
 }) {
-  const [modalEliminarAbierto, setModalEliminarAbierto] = useState(false)
+  const [modalDesactivarAbierto, setModalDesactivarAbierto] = useState(false)
   const talleresPorId = new Map(talleres.map((taller) => [taller.id, taller]))
   const membresiaActiva = miembros.find((miembro) => miembro.taller_id === tallerActivoId && miembro.estado === 'activo')
   const tallerActivoNombre = talleresPorId.get(tallerActivoId)?.nombre ?? 'Sin taller seleccionado'
 
-  const cerrarModalEliminar = () => {
-    if (eliminandoCuenta) return
+  const cerrarModalDesactivar = () => {
+    if (desactivandoCuenta) return
 
-    setModalEliminarAbierto(false)
+    setModalDesactivarAbierto(false)
   }
 
-  const confirmarEliminacionCuenta = async () => {
-    await eliminarCuenta()
+  const confirmarDesactivacionCuenta = async () => {
+    await desactivarCuenta()
   }
 
   useEffect(() => {
-    if (!modalEliminarAbierto) return
+    if (!modalDesactivarAbierto) return
 
     const cerrarConEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !eliminandoCuenta) setModalEliminarAbierto(false)
+      if (event.key === 'Escape' && !desactivandoCuenta) setModalDesactivarAbierto(false)
     }
 
     window.addEventListener('keydown', cerrarConEscape)
     return () => window.removeEventListener('keydown', cerrarConEscape)
-  }, [modalEliminarAbierto, eliminandoCuenta])
+  }, [modalDesactivarAbierto, desactivandoCuenta])
 
   return (
     <>
@@ -175,27 +175,26 @@ export function Perfil({
           <Panel titulo="Zona de peligro">
             <div className="account-danger-card">
               <div>
-                <p className="font-extrabold text-[var(--error)]">Eliminar cuenta</p>
+                <p className="font-extrabold text-[var(--error)]">Desactivar cuenta</p>
                 <p>
-                  Borra tu acceso personal a Repubase. Si tienes talleres donde eres el único miembro activo, también se
-                  eliminarán junto con su inventario y movimientos.
+                  Desactiva tu acceso personal a Repubase. Tus datos se conservan y la reactivacion debe solicitarse a un administrador.
                 </p>
               </div>
               <button
                 className="danger-button account-danger-button"
                 type="button"
-                onClick={() => setModalEliminarAbierto(true)}
+                onClick={() => setModalDesactivarAbierto(true)}
               >
-                <Trash2 size={18} />
-                Eliminar cuenta
+                <UserMinus size={18} />
+                Desactivar cuenta
               </button>
             </div>
           </Panel>
       </div>
 
-      {modalEliminarAbierto ? (
+      {modalDesactivarAbierto ? (
         <div className="modal-backdrop" role="presentation">
-          <section className="delete-modal" role="dialog" aria-modal="true" aria-labelledby="eliminar-cuenta-titulo">
+          <section className="delete-modal" role="dialog" aria-modal="true" aria-labelledby="desactivar-cuenta-titulo">
             <div className="delete-modal-header">
               <div className="delete-modal-icon">
                 <AlertTriangle size={26} />
@@ -204,26 +203,26 @@ export function Perfil({
                 type="button"
                 className="modal-close-button"
                 aria-label="Cerrar modal"
-                onClick={cerrarModalEliminar}
+                onClick={cerrarModalDesactivar}
               >
                 <X size={20} />
               </button>
             </div>
 
-            <h3 id="eliminar-cuenta-titulo">Eliminar cuenta</h3>
+            <h3 id="desactivar-cuenta-titulo">Desactivar cuenta</h3>
             <p>
-              Esta acción es irreversible. Se eliminará tu cuenta personal, tu perfil y tu foto. Los talleres donde seas
-              el único miembro activo también se eliminarán con sus datos asociados.
+              Tu cuenta quedara desactivada y no podras operar en Repubase. La informacion se conserva para historial y
+              auditoria. Para reactivarla, contacta con un administrador.
             </p>
             <form
               className="delete-confirm-form"
               onSubmit={(event) => {
                 event.preventDefault()
-                void confirmarEliminacionCuenta()
+                void confirmarDesactivacionCuenta()
               }}
             >
-              <button className="danger-button" type="submit" disabled={eliminandoCuenta} autoFocus>
-                {eliminandoCuenta ? 'Eliminando cuenta...' : 'Lo se, eliminar cuenta'}
+              <button className="danger-button" type="submit" disabled={desactivandoCuenta} autoFocus>
+                {desactivandoCuenta ? 'Desactivando cuenta...' : 'Lo se, desactivar cuenta'}
               </button>
             </form>
           </section>

@@ -2,6 +2,8 @@ export type RolTaller = 'propietario' | 'administrador' | 'encargado' | 'mecanic
 
 export type EstadoMiembro = 'activo' | 'inactivo' | 'invitado'
 
+export type EstadoRegistro = 'activo' | 'desactivado'
+
 export type EstadoRepuesto = 'disponible' | 'reservado' | 'usado' | 'descartado'
 
 export type TipoMovimiento = 'entrada' | 'salida' | 'ajuste'
@@ -13,6 +15,10 @@ export type Perfil = {
   nombre: string | null
   email: string
   avatar_url: string | null
+  estado: EstadoRegistro
+  desactivado_en: string | null
+  desactivado_por: string | null
+  motivo_desactivacion: string | null
   creado_en: string
 }
 
@@ -31,6 +37,10 @@ export type Taller = {
   notas: string | null
   logo_url: string | null
   creado_por: string | null
+  estado: EstadoRegistro
+  desactivado_en: string | null
+  desactivado_por: string | null
+  motivo_desactivacion: string | null
   creado_en: string
 }
 

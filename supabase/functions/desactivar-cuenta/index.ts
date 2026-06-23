@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       estado: 'desactivado',
       desactivado_en: desactivadoEn,
       desactivado_por: user.id,
-      motivo_desactivacion: 'Solicitud del usuario desde el flujo legacy de eliminacion',
+      motivo_desactivacion: 'Solicitud del usuario desde la app',
     }
 
     const { data: perfilActualizado, error: perfilUpdateError } = await supabaseAdmin
@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
 
     return responder({ ok: true })
   } catch (error) {
-    console.error('No se pudo desactivar la cuenta desde el flujo legacy', error)
+    console.error('No se pudo desactivar la cuenta', error)
     return responder({ error: 'No se pudo desactivar la cuenta' }, 500)
   }
 })
